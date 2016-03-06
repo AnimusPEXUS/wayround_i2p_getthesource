@@ -3,24 +3,36 @@
 Module for getting tarballs and they' related information from gnu.org
 """
 
+import os.path
 import logging
 import urllib.request
+import datetime
 
+import yaml
 import lxml.html
 
 import wayround_org.utils.path
+import wayround_org.utils.data_cache
 
 
-class Source:
+class Provider:
 
     def __init__(self, controller):
+        self.cache_dir = controller.cache_dir
         return
 
     def get_provider_name(self):
-        return 'gnu.org'
+        return 'GNU.ORG'
 
     def get_protocol_description(self):
         return 'https'
+
+    def get_is_provider_enabled(self):
+        # NOTE: here can be provided warning text printing in case is
+        #       module decides to return False. For instance if torsocks
+        #       is missing in system and module requires it's presence to be
+        #       enabled
+        return True
 
     def get_provider_main_site_uri(self):
         return 'https://gnu.org/'
@@ -34,57 +46,104 @@ class Source:
     def get_project_param_can_be_None(self):
         return True
 
-    def get_project_names(self):
-        ret = None
+    def _get_project_names_cache_check_refresh_required_cb(self, path):
 
-        page = None
-        try:
-            pkg_list_page = urllib.request.urlopen(
-                'https://gnu.org/software/software.html'
+        ret = True
+
+        if os.path.isfile(path):
+
+            file_ctime = datetime.datetime.fromtimestamp(
+                os.stat(path).st_ctime,
+                tz=datetime.timezone.utc
                 )
-            page_text = pkg_list_page.read()
-            pkg_list_page.close()
-            page_parsed = lxml.html.document_fromstring(page_text)
-        except:
-            pass
+            current_time = datetime.datetime.now(
+                tz=datetime.timezone.utc
+                )
 
-        tag = None
-
-        if page_parsed is not None:
-            tag = page_parsed.find('.//body')
-
-        if tag is not None:
-            tag = tag.find('div[@class="inner"]')
-
-        if tag is not None:
-            tag = tag.find('div[@id="content"]')
-
-        uls_needed = 2
-
-        if tag is not None:
-            ases = list()
-            ul_found = False
-
-            for i in tag:
-
-                if ul_found:
-                    if type(i) == lxml.html.HtmlElement:
-                        if i.tag == 'a':
-                            ir = i.get('href', None)
-                            if ir is not None:
-                                ases.append(ir.strip('/'))
-                        else:
-                            break
-                else:
-                    if type(i) == lxml.html.HtmlElement and i.tag == 'ul':
-                        uls_needed -= 1
-                        if uls_needed == 0:
-                            ul_found = True
-
-            ret = ases
+            ret = (current_time - file_ctime) > datetime.timedelta(days=1)
 
         return ret
-    
+
+    def _get_project_names_cache_refresh_cb(self, path):
+        data = self.get_project_names(use_cache=False)
+        with open(path, 'w') as f:
+            f.write(yaml.dump(data))
+        return
+
+    def _get_project_names_cache(self):
+        cache_mgr = wayround_org.utils.data_cache.DataCache(
+            self.cache_dir,
+            '{}_project_names'.format(
+                self.get_provider_name()
+                ),
+            self._get_project_names_cache_check_refresh_required_cb,
+            tuple(),
+            {},
+            self._get_project_names_cache_refresh_cb,
+            tuple(),
+            {}
+            )
+        ret = None
+        cache = cache_mgr.open_cache()
+        if cache is not None:
+            ret = yaml.load(cache.read())
+            cache.close()
+        return ret
+
+    def get_project_names(self, use_cache=True):
+        ret = None
+
+        if use_cache:
+            ret = self._get_project_names_cache()
+        else:
+            page = None
+            try:
+                pkg_list_page = urllib.request.urlopen(
+                    'https://gnu.org/software/software.html'
+                    )
+                page_text = pkg_list_page.read()
+                pkg_list_page.close()
+                page_parsed = lxml.html.document_fromstring(page_text)
+            except:
+                pass
+
+            tag = None
+
+            if page_parsed is not None:
+                tag = page_parsed.find('.//body')
+
+            if tag is not None:
+                tag = tag.find('div[@class="inner"]')
+
+            if tag is not None:
+                tag = tag.find('div[@id="content"]')
+
+            uls_needed = 2
+
+            if tag is not None:
+                ases = list()
+                ul_found = False
+
+                for i in tag:
+
+                    if ul_found:
+                        if type(i) == lxml.html.HtmlElement:
+                            if i.tag == 'a':
+                                ir = i.get('href', None)
+                                if ir is not None:
+                                    ases.append(ir.strip('/'))
+                            else:
+                                break
+                    else:
+                        if type(i) == lxml.html.HtmlElement and i.tag == 'ul':
+                            uls_needed -= 1
+                            if uls_needed == 0:
+                                ul_found = True
+
+                ret = ases
+
+        return ret
+
     def get_basenames(self, project):
         return
 

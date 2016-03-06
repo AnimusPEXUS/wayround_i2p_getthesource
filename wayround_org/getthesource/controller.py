@@ -1,16 +1,86 @@
 
-import wayround_org.getthesource.data_cache
+import os.path
+import importlib
+
+import wayround_org.utils.path
 
 
 class Controller:
 
     def __init__(self, cfg):
-        self.cfg = cfg
+        self.cache_dir = '~/.config/wrogts/caches'
+        try:
+            self.cache_dir = cfg['general']['cache_dir']
+        except:
+            logging.exception(
+                "Error getting ['general']['cache_dir'] value from config"
+                )
+            raise
 
-    def load_providers(self):
+        self.providers = {}
+
+        self.cache_dir = os.path.expanduser(self.cache_dir)
+
+        self._load_providers()
+
         return
 
-    def get_providers(self):
+    def _load_providers(self):
+        """
+        This method should be started only once - on object init
+        """
+        providers_dir = wayround_org.utils.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'modules',
+            'providers'
+            )
+        providers = []
+        for i in sorted(os.listdir(providers_dir)):
+            if i.endswith('.py'):
+                j = wayround_org.utils.path.join(
+                    providers_dir,
+                    i
+                    )
+                if os.path.isfile(j):
+                    providers.append(i[:-3])
+
+        if '__init__' in providers:
+            providers.remove('__init__')
+
+        for i in providers:
+            mod = importlib.import_module(
+                'wayround_org.getthesource.modules.providers.{}'.format(i)
+                )
+            p = mod.Provider(self)
+            if p.get_is_provider_enabled():
+                self.providers[i] = p
+            del mod
+            del p
+
+        return
+
+    def list_providers(self):
+        ret = sorted(list(self.providers.keys()))
+        return ret
+
+    def list_projects(self, provider):
+        """
+        return
+            list of strings - names of projects provided by named provider.
+            None - in case of error
+            False - in case provider isn't devided on projects
+        """
+
+        if not isinstance(provider, str):
+            raise TypeError("`provider' must be str")
+
+        ret = None
+        if provider in self.providers:
+            p = self.providers[provider]
+            ret = p.get_project_names()
+        return ret
+
+    def render_provider_info(self, provider_name):
         return
 
     def get_tarball_uris(self, basename, provider, project):
