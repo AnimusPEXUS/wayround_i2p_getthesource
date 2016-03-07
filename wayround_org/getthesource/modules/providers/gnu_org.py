@@ -7,12 +7,15 @@ import os.path
 import logging
 import urllib.request
 import datetime
+import hashlib
 
 import yaml
 import lxml.html
 
 import wayround_org.utils.path
 import wayround_org.utils.data_cache
+import wayround_org.utils.data_cache_miscs
+import wayround_org.utils.tarball
 
 
 class Provider:
@@ -44,57 +47,23 @@ class Provider:
         return True
 
     def get_project_param_can_be_None(self):
-        return True
-
-    def _get_project_names_cache_check_refresh_required_cb(self, path):
-
-        ret = True
-
-        if os.path.isfile(path):
-
-            file_ctime = datetime.datetime.fromtimestamp(
-                os.stat(path).st_ctime,
-                tz=datetime.timezone.utc
-                )
-            current_time = datetime.datetime.now(
-                tz=datetime.timezone.utc
-                )
-
-            ret = (current_time - file_ctime) > datetime.timedelta(days=1)
-
-        return ret
-
-    def _get_project_names_cache_refresh_cb(self, path):
-        data = self.get_project_names(use_cache=False)
-        with open(path, 'w') as f:
-            f.write(yaml.dump(data))
-        return
-
-    def _get_project_names_cache(self):
-        cache_mgr = wayround_org.utils.data_cache.DataCache(
-            self.cache_dir,
-            '{}_project_names'.format(
-                self.get_provider_name()
-                ),
-            self._get_project_names_cache_check_refresh_required_cb,
-            tuple(),
-            {},
-            self._get_project_names_cache_refresh_cb,
-            tuple(),
-            {}
-            )
-        ret = None
-        cache = cache_mgr.open_cache()
-        if cache is not None:
-            ret = yaml.load(cache.read())
-            cache.close()
-        return ret
+        return False
 
     def get_project_names(self, use_cache=True):
         ret = None
 
         if use_cache:
-            ret = self._get_project_names_cache()
+            dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
+                self.cache_dir,
+                '({})-(project_names)'.format(
+                    self.get_provider_name()
+                    ),
+                datetime.timedelta(days=1),
+                'sha1',
+                self.get_project_names,
+                freshdata_callback_kwargs=dict(use_cache=False)
+                )
+            ret = dc.get_data_cache()
         else:
             page = None
             try:
@@ -142,12 +111,18 @@ class Provider:
 
                 ret = ases
 
+                '''
+                for i in ['8sync']:
+                    while i in ret:
+                        ret.remove(i)
+                '''
+
         return ret
 
     def get_basenames(self, project):
         return
 
-    def listdir(self, project, path='/'):
+    def listdir(self, project, path='/', use_cache=True):
         """
         params:
             project - str or None. None - allows listing directory /gnu/
@@ -160,100 +135,122 @@ class Provider:
             dirs == files == None - means error
         """
 
-        ret = None, None
-
-        path = '/{}/'.format(path.strip('/'))
-
-        if isinstance(project, str):
-            req_url = '{}{}{}'.format(
-                self.get_provider_main_downloads_uri(),
-                project,
-                path
+        if use_cache:
+            digest = hashlib.sha1()
+            digest.update(path.encode('utf-8'))
+            digest = digest.hexdigest().lower()
+            dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
+                self.cache_dir,
+                '({})-(listdir)-({})-({})'.format(
+                    self.get_provider_name(),
+                    project,
+                    digest
+                    ),
+                datetime.timedelta(days=1),
+                'sha1',
+                self.listdir,
+                freshdata_callback_args=(project,),
+                freshdata_callback_kwargs=dict(path=path, use_cache=False)
                 )
+            ret = dc.get_data_cache()
         else:
-            req_url = '{}{}'.format(
-                self.get_provider_main_downloads_uri(),
-                path
-                )
 
-        req_url = '{}/'.format(req_url.rstrip('/'))
+            ret = None, None
 
-        print('req_url: {}'.format(req_url))
+            path = '/{}/'.format(path.strip('/'))
 
-        req = urllib.request.Request(req_url)
-
-        page_parsed = None
-        try:
-            rl_f = urllib.request.urlopen(req)
-            page_text = rl_f.read()
-            rl_f.close()
-            page_parsed = lxml.html.document_fromstring(page_text)
-        except OSError:
-            page_parsed = None
-
-        if page_parsed is not None:
-            file_list_table = page_parsed.find('.//table')
-
-            if file_list_table is None:
-                pass
+            if isinstance(project, str):
+                req_url = '{}{}{}'.format(
+                    self.get_provider_main_downloads_uri(),
+                    project,
+                    path
+                    )
             else:
+                req_url = '{}{}'.format(
+                    self.get_provider_main_downloads_uri(),
+                    path
+                    )
 
-                # file_list_table_tbody = file_list_table.find('tbody')
+            req_url = '{}/'.format(req_url.rstrip('/'))
 
-                file_list_table_tbody = file_list_table
+            # print("requesting: {}".format(req_url))
 
-                folder_trs = file_list_table_tbody.findall('tr')
+            req = urllib.request.Request(req_url)
 
-                folders = []
-                files = {}
+            page_parsed = None
+            try:
+                rl_f = urllib.request.urlopen(req)
+                resp_code = rl_f.getcode()
+                # print("    code: {}".format(resp_code))
+                page_text = rl_f.read()
+                rl_f.close()
+                page_parsed = lxml.html.document_fromstring(page_text)
+            except OSError:
+                # print("oserror")
+                page_parsed = None
 
-                for i in folder_trs[2:]:
+            if page_parsed is not None:
+                file_list_table = page_parsed.find('.//table')
 
-                    img_alt = None
+                if file_list_table is None:
+                    pass
+                else:
 
-                    try:
-                        img_alt = i[0][0].get('alt', None)
-                    except:
-                        continue
+                    file_list_table_tbody = file_list_table
 
-                    href = None
-                    try:
-                        href = i[1][0].get('href', None)
-                    except:
-                        continue
+                    folder_trs = file_list_table_tbody.findall('tr')
 
-                    if href is not None:
-                        href = urllib.request.unquote(href)
-                        href = href.strip('/')
+                    folders = []
+                    files = {}
 
-                    if img_alt == '[DIR]':
-                        folders.append(href)
-                    elif img_alt == '[PARENTDIR]':
-                        continue
-                    elif img_alt == '[   ]':
-                        if isinstance(project, str):
-                            files[href] = '{}{}'.format(
-                                self.get_provider_main_downloads_uri(),
-                                wayround_org.utils.path.join(
-                                    project,
-                                    path,
-                                    href
+                    for i in folder_trs[2:]:
+
+                        img_alt = None
+
+                        try:
+                            img_alt = i[0][0].get('alt', None)
+                        except:
+                            continue
+
+                        href = None
+                        try:
+                            href = i[1][0].get('href', None)
+                        except:
+                            continue
+
+                        if href is not None:
+                            href = urllib.request.unquote(href)
+                            href = href.strip('/')
+
+                        if img_alt == '[DIR]':
+                            folders.append(href)
+                        elif img_alt == '[PARENTDIR]':
+                            continue
+                        elif img_alt == '[   ]':
+                            if isinstance(project, str):
+                                files[href] = '{}{}'.format(
+                                    self.get_provider_main_downloads_uri(),
+                                    wayround_org.utils.path.join(
+                                        project,
+                                        path,
+                                        href
+                                        )
                                     )
-                                )
+                            else:
+                                files[href] = '{}{}'.format(
+                                    self.get_provider_main_downloads_uri(),
+                                    wayround_org.utils.path.join(
+                                        path,
+                                        href
+                                        )
+                                    )
+
                         else:
-                            files[href] = '{}{}'.format(
-                                self.get_provider_main_downloads_uri(),
-                                wayround_org.utils.path.join(
-                                    path,
-                                    href
-                                    )
-                                )
+                            # NOTE: this is not error. here shoulb be only
+                            #       pass
+                            pass
 
-                    else:
-                        pass
-
-                ret = folders, files
-
+                    ret = folders, files
         return ret
 
     def walk(self, project, path='/'):
@@ -261,7 +258,15 @@ class Provider:
         folders, files = self.listdir(project, path=path)
 
         if folders is None and files is None:
-            raise Exception("listdir() func returned error")
+            #raise Exception("listdir() func returned error")
+            logging.error(
+                "listdir() func returned error: project {}, path {}".format(
+                    project,
+                    path
+                    )
+                )
+            folders = []
+            files = []
 
         yield path, folders, files
 
@@ -272,17 +277,68 @@ class Provider:
 
         return
 
-    def tree(self, project):
+    def tree(self, project, use_cache=True):
         """
         result: dict, where keys ar full pathnames relatively to project root dir (
             but each line is started with slash!
             )
         """
 
-        all_files = {}
+        if use_cache:
+            dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
+                self.cache_dir,
+                '({})-(tree)-({})'.format(
+                    self.get_provider_name(),
+                    project
+                    ),
+                datetime.timedelta(days=1),
+                'sha1',
+                self.tree,
+                freshdata_callback_args=(project,),
+                freshdata_callback_kwargs=dict(use_cache=False)
+                )
+            ret = dc.get_data_cache()
+        else:
 
-        for path, dirs, files in self.walk(project):
-            for i in files:
-                all_files[wayround_org.utils.path.join(path, i)] = files[i]
+            all_files = {}
 
-        return all_files
+            for path, dirs, files in self.walk(project):
+                for i in files:
+                    all_files[wayround_org.utils.path.join(path, i)] = files[i]
+
+            ret = all_files
+
+        return ret
+
+    def tarballs(self, project, use_cache=True, use_tree_cache=True):
+        if use_cache:
+            dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
+                self.cache_dir,
+                '({})-(tarballs)-({})'.format(
+                    self.get_provider_name(),
+                    project
+                    ),
+                datetime.timedelta(days=1),
+                'sha1',
+                self.tarballs,
+                freshdata_callback_args=(project,),
+                freshdata_callback_kwargs=dict(use_cache=False)
+                )
+            ret = dc.get_data_cache()
+        else:
+            tree = self.tree(project, use_cache=use_tree_cache)
+
+            lst = []
+
+            for i in tree:
+                # print("tarballs: project: {}, i == {}".format(project, i))
+                parse_result = wayround_org.utils.tarball.parse_tarball_name(
+                    os.path.basename(i),
+                    mute=True
+                    )
+                if parse_result is not None:
+                    lst.append((i, tree[i]))
+
+            ret = lst
+
+        return ret

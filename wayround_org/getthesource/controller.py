@@ -80,6 +80,33 @@ class Controller:
             ret = p.get_project_names()
         return ret
 
+    def list_tarballs(self, providers, projects):
+        print("list_tarballs: {}, {}".format(providers, projects))
+        ret = {}
+        for i in sorted(list(self.providers.keys())):
+
+            if providers is None or i in providers:
+                provider = self.providers[i]
+                if provider.get_project_param_used():
+                    for j in sorted(provider.get_project_names()):
+                        if projects is None or j in projects:
+                            for k in provider.tarballs(j):
+                                if not i in ret:
+                                    ret[i] = dict()
+                                if not j in ret[i]:
+                                    ret[i][j] = []
+                                ret[i][j].append(k)
+                else:
+                    raise Exception("TODO")
+
+        '''
+        for i in ret.keys():
+            for j in ret[i].keys():
+                ret[i][j].sort(key=lambda x: x[0], reverse=True)
+        '''
+
+        return ret
+
     def render_provider_info(self, provider_name):
         return
 
