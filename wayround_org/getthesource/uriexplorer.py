@@ -1,28 +1,51 @@
 
 import os.path
 import importlib
+import logging
+import datetime
 
 import wayround_org.utils.path
+import wayround_org.utils.log
 
 
-class Controller:
+class URIExplorer:
 
     def __init__(self, cfg):
+
+        log_dir = '~/.config/wrogts/logs'
+
+        try:
+            log_dir = cfg['general']['log_dir']
+        except:
+            logging.warning(
+                "Error getting ['general']['log_dir'] value from config"
+                )
+
+        log_dir = os.path.expanduser(log_dir)
+
+        self.logger = wayround_org.utils.log.Log(
+            log_dir,
+            '{}'.format(datetime.datetime.utcnow())
+            )
+
         self.cache_dir = '~/.config/wrogts/caches'
         try:
             self.cache_dir = cfg['general']['cache_dir']
         except:
-            logging.exception(
+            self.logger.warning(
                 "Error getting ['general']['cache_dir'] value from config"
                 )
-            raise
-
-        self.providers = {}
 
         self.cache_dir = os.path.expanduser(self.cache_dir)
 
+        self.providers = {}
+
         self._load_providers()
 
+        return
+
+    def __del__(self):
+        self.logger.stop()
         return
 
     def _load_providers(self):
@@ -81,7 +104,6 @@ class Controller:
         return ret
 
     def list_tarballs(self, providers, projects):
-        print("list_tarballs: {}, {}".format(providers, projects))
         ret = {}
         for i in sorted(list(self.providers.keys())):
 
@@ -99,11 +121,25 @@ class Controller:
                 else:
                     raise Exception("TODO")
 
-        '''
-        for i in ret.keys():
-            for j in ret[i].keys():
-                ret[i][j].sort(key=lambda x: x[0], reverse=True)
-        '''
+        return ret
+
+    def list_basenames(self, providers, projects):
+        ret = {}
+        for i in sorted(list(self.providers.keys())):
+
+            if providers is None or i in providers:
+                provider = self.providers[i]
+                if provider.get_project_param_used():
+                    for j in sorted(provider.get_project_names()):
+                        if projects is None or j in projects:
+                            for k in provider.basenames(j):
+                                if not i in ret:
+                                    ret[i] = dict()
+                                if not j in ret[i]:
+                                    ret[i][j] = []
+                                ret[i][j].append(k)
+                else:
+                    raise Exception("TODO")
 
         return ret
 
