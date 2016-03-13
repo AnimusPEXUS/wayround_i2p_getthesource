@@ -25,7 +25,7 @@ class URIExplorer:
 
         self.logger = wayround_org.utils.log.Log(
             log_dir,
-            '{}'.format(datetime.datetime.utcnow())
+            'uriexplorer {}'.format(datetime.datetime.utcnow())
             )
 
         self.cache_dir = '~/.config/wrogts/caches'
@@ -76,7 +76,7 @@ class URIExplorer:
                 )
             p = mod.Provider(self)
             if p.get_is_provider_enabled():
-                self.providers[i] = p
+                self.providers[p.get_provider_code_name()] = p
             del mod
             del p
 
@@ -146,6 +146,8 @@ class URIExplorer:
     def render_provider_info(self, provider_name):
         return
 
+    '''
+    # NOTE: looks like this block is not needed eventually
     def get_tarball_uris(self, basename, provider, project):
         """
         this method returns list with 2-tuples, where
@@ -177,3 +179,4 @@ class URIExplorer:
         """
 
         return
+    '''

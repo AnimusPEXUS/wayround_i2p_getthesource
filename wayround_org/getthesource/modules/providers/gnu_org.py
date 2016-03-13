@@ -17,6 +17,8 @@ import wayround_org.utils.data_cache
 import wayround_org.utils.data_cache_miscs
 import wayround_org.utils.tarball
 
+
+import wayround_org.getthesource.uriexplorer
 import wayround_org.getthesource.modules.providers.templates.std_https_wp
 
 
@@ -26,12 +28,25 @@ class Provider(
         ):
 
     def __init__(self, controller):
+
+        if not isinstance(
+                controller,
+                wayround_org.getthesource.uriexplorer.URIExplorer
+                ):
+            raise TypeError(
+                "`controller' must be inst of "
+                "wayround_org.getthesource.uriexplorer.URIExplorer"
+                )
+
         self.cache_dir = controller.cache_dir
         self.logger = controller.logger
         return
 
     def get_provider_name(self):
         return 'GNU.ORG'
+
+    def get_provider_code_name(self):
+        return 'gnu.org'
 
     def get_protocol_description(self):
         return 'https'

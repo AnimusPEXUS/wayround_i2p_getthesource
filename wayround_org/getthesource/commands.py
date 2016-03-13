@@ -8,6 +8,8 @@ import wayround_org.utils.getopt
 import wayround_org.utils.text
 
 import wayround_org.getthesource.uriexplorer
+import wayround_org.getthesource.mirrorer
+
 
 CONFIG_PATH = '/etc/wrogts.conf.yaml'
 
@@ -20,6 +22,7 @@ def commands():
         ('list-tarballs', tarball_list),
         ('list-basenames', basename_list),
         #('find-tarball-uris', find_tarball_uris)
+        ('run-mirroring', mirrorer_work_on_dir),
     ])
     return ret
 
@@ -86,7 +89,6 @@ def provider_projects_list(command_name, opts, args, adds):
         ret = 3
 
     if ret == 0:
-
         provider = interprete_provider_param_value(args[0])
 
     if ret == 0:
@@ -232,5 +234,30 @@ def basename_list(command_name, opts, args, adds):
                         end=''
                         )
                     print("        " + '-' * 70)
+
+    return ret
+
+
+def mirrorer_work_on_dir(command_name, opts, args, adds):
+    ret = 0
+    cfg = load_config(CONFIG_PATH)
+
+    if cfg is None:
+        ret = 2
+
+    if len(args) != 1:
+        logging.error(
+            "this command requires single argument - "
+            "directory in which to run"
+            )
+        ret = 3
+
+    if ret == 0:
+        working_directory = interprete_provider_param_value(args[0])
+
+    if ret == 0:
+
+        controller = wayround_org.getthesource.mirrorer.Mirrorer(cfg)
+        ret = controller.work_on_dir(working_directory)
 
     return ret
