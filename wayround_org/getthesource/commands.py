@@ -253,11 +253,15 @@ def mirrorer_work_on_dir(command_name, opts, args, adds):
         ret = 3
 
     if ret == 0:
-        working_directory = interprete_provider_param_value(args[0])
+        working_directory = args[0]
 
     if ret == 0:
 
-        controller = wayround_org.getthesource.mirrorer.Mirrorer(cfg)
-        ret = controller.work_on_dir(working_directory)
+        uriexplorer = wayround_org.getthesource.uriexplorer.URIExplorer(cfg)
+        mirrorer = wayround_org.getthesource.mirrorer.Mirrorer(
+            cfg,
+            uriexplorer
+            )
+        ret = mirrorer.work_on_dir(working_directory)
 
     return ret

@@ -1,6 +1,11 @@
 
-import yaml
+import os.path
 import copy
+import logging
+import importlib
+import datetime
+
+import yaml
 
 import wayround_org.utils.path
 import wayround_org.utils.tarball
@@ -40,11 +45,53 @@ class Mirrorer:
 
         self.uriexplorer = uriexplorer
 
+        self.downloaders = {}
+
+        self._load_downloaders()
+
+        return
+
+    def _load_downloaders(self):
+        """
+        This method should be started only once - on object init
+        """
+        downloader_dir = wayround_org.utils.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'modules',
+            'downloaders'
+            )
+        downloaders = []
+        for i in sorted(os.listdir(downloader_dir)):
+            if i.endswith('.py'):
+                j = wayround_org.utils.path.join(
+                    downloader_dir,
+                    i
+                    )
+                if os.path.isfile(j):
+                    downloaders.append(i[:-3])
+
+        if '__init__' in downloaders:
+            downloaders.remove('__init__')
+
+        for i in downloaders:
+            mod = importlib.import_module(
+                'wayround_org.getthesource.modules.downloaders.{}'.format(i)
+                )
+            p = mod.Downloader(self)
+            if p.get_is_downloader_enabled():
+                self.downloaders[p.get_downloader_code_name()] = p
+            del mod
+            del p
+
         return
 
     def work_on_dir(self, path):
 
         ret = 0
+
+        self.logger.info(
+            "Got task to perform mirroring in dir: {}".format(path)
+            )
 
         path = wayround_org.utils.path.abspath(path)
 
@@ -52,6 +99,8 @@ class Mirrorer:
             path,
             'wrogts_mirrorer.conf.yaml'
             )
+
+        self.logger.info("loading config: {}".format(m_cfg_path))
 
         with open(m_cfg_path) as f:
             m_cfg = yaml.load(f.read())
@@ -63,7 +112,16 @@ class Mirrorer:
             ret = 1
 
         if ret == 0:
+            self.logger.info(
+                "mirroring config contains {} description(s)".format(
+                    len(m_cfg)
+                    )
+                )
             for i in m_cfg:
+                self.logger.info("------------------------")
+                self.logger.info(
+                    "processing description #{}".format(m_cfg.index(i))
+                    )
                 options = {
                     'preferred_tarball_compressors': (
                         wayround_org.utils.tarball.
@@ -83,7 +141,7 @@ class Mirrorer:
                         if j in i['options']:
                             options[j] = i['options'].get(j, None)
 
-                targets = []
+                targets = i.get('targets', {})
 
                 self.work_on_dir_with_settings(
                     path,
@@ -100,9 +158,12 @@ class Mirrorer:
         settings['targets'] structure:
         {
             # if value to key is dict, then assume project devision of provider.
-            # else, if list, assume list of tarball basenames to get
+            # else, if list, assume list of tarball basenames to get.
+            # if value is None - get all project names from provider and get all
+            # bases from them.
             'gnu.org': {
-                'gcc': [  # list of tarball basenames to get
+                'gcc': [  # list of tarball basenames to get. if None - get all
+                          # bases provided by project
                     'gcc'
                 ]
             }
@@ -111,9 +172,13 @@ class Mirrorer:
 
         ret = 0
 
-        errors_oqcured = False
+        settings_targets = settings.get('targets', {})
+        settings_options = settings.get('options', {})
 
-        requested_provider_names = list(settings.keys())
+        #print("settings_targets: {}".format(settings_targets))
+        #print("settings_options: {}".format(settings_options))
+
+        requested_provider_names = list(settings_targets.keys())
 
         requested_provider_names.sort()
 
@@ -122,17 +187,116 @@ class Mirrorer:
                 self.logger.error(
                     "No requested provider named: {}".format(provider_name)
                     )
-                errors_occured = True
                 continue
-            provider_target_setting = settings[provider_name]
-            if isinstance(provider_target_setting, list):
-                pass
+
+            provider = self.uriexplorer.providers[provider_name]
+            provider_has_projects = provider.get_project_param_used()
+            provider_project_names = None
+            if provider_has_projects:
+                provider_project_names = provider.get_project_names()
+
+            provider_target_setting = settings_targets[provider_name]
+
+            if provider_target_setting is None:
+
+                if provider_has_projects:
+                    for i in provider_project_names:
+                        for j in provider.basenames(i):
+                            self.work_on_dir_with_basename(
+                                path,
+                                provider_name,
+                                i,
+                                j,
+                                settings_options
+                                )
+                else:
+                    for i in provider.basenames():
+                        self.work_on_dir_with_basename(
+                            path,
+                            provider_name,
+                            None,
+                            i,
+                            settings_options
+                            )
+
+            elif isinstance(provider_target_setting, list):
+                if not provider_has_projects:
+                    self.logger.error(
+                        "setting for `{}' excludes projects subdivision, but "
+                        "this provider is subdivided on projects"
+                        "".format(provider_name)
+                        )
+                    continue
+
+                for i in provider_target_setting:
+                    if i not in provider_project_names:
+                        self.logger.error(
+                            "provider `{}' has no project `{}'".format(
+                                provider_name,
+                                i
+                                )
+                            )
+                        continue
+
+                    for j in provider.basenames(i):
+                        self.work_on_dir_with_basename(
+                            path,
+                            provider_name,
+                            i,
+                            j,
+                            settings_options
+                            )
             elif isinstance(provider_target_setting, dict):
-                for i in provider_target_setting.keys():
-                    pass
+
+                if not provider_has_projects:
+                    self.logger.error(
+                        "setting for `{}' means projects, but this provider"
+                        " isn't subdivided onto projects".format(provider_name)
+                        )
+                    continue
+
+                for i in sorted(list(provider_target_setting.keys())):
+                    for j in sorted(list(provider_target_setting[i].keys())):
+
+                        if i not in provider_project_names:
+                            self.logger.error(
+                                "provider `{}' has no project `{}'".format(
+                                    provider_name,
+                                    i
+                                    )
+                                )
+                            continue
+
+                        provider_project_basenames = provider.basenames(j)
+
+                        basenames = provider_target_setting[i][j]
+                        if basenames is None:
+                            basenames = provider_project_basenames
+
+                        for k in basenames:
+
+                            if k not in provider_project_basenames:
+                                self.logger.error(
+                                    "provider `{}' project `'{}"
+                                    " has no basename `{}'".format(
+                                        provider_name,
+                                        j,
+                                        k,
+                                        )
+                                    )
+                                continue
+
+                            self.work_on_dir_with_basename(
+                                path,
+                                provider_name,
+                                i,
+                                j,
+                                settings_options
+                                )
             else:
                 self.logger.error(
-                    "invalid type of target descr structure for provider:"
+                    "invalid type of target description"
+                    " structure for provider:"
                     " {}".format(provider_name)
                     )
                 errors_oqcured = True
@@ -186,104 +350,51 @@ class Mirrorer:
 
             for i in only_latests:
                 bases.append(i[0])
-            
-            self.remove_invalid_bases(bases)
 
-            self.filter_for_latests(
-                filter_for_latests_res,
-                0,
+            wayround_org.utils.version.remove_invalid_bases(bases)
+
+            tree = wayround_org.utils.version.same_base_structurize_by_version(
                 bases
                 )
 
-            '''
-            needed_versions = []
+            wayround_org.utils.version.truncate_ver_tree(tree, only_latests)
 
-            versions = set()
-
-            for i in needed_tarballs:
-                parse_result = wayround_org.utils.tarball.parse_tarball_name(
-                    i[0]
-                    )
-                if parse_result is None:
-                    continue
-
-                if parse_result[]
-            '''
-        return
-    
-    def remove_invalid_bases(self, bases):
-        for i in range(len(bases) - 1, -1, -1):
-            parse_result = wayround_org.utils.tarball.parse_tarball_name(
-                bases[i][0]
-                )
-            if parse_result is None:
-                del bases[i]
-            else:
-                try:
-                    version_list = parse_result['groups']['version_list']
-                except KeyError:
-                    version_list = None
-
-                if (not isinstance(version_list, list)
-                        or len(version_list) == 0):
-                    del bases[i]
-        return
-
-    def filter_for_latests(
-            self,
-            filter_for_latests_res,
-            version_depth_index,
-            farther_variants,
-            trim_count
-            ):
-        """
-        This method is for recursive calling
-        """
-        # TODO: maybe this method need to be moved into utils
-
-        # farther_variants.sort()
-        farther_variants_working = copy.copy(farther_variants)
-
-        version_index_list = set()
-
-        for i in farther_variants_working:
-            parse_result = wayround_org.utils.tarball.parse_tarball_name(
-                i[0]
+            bases = wayround_org.utils.version.get_bases_from_ver_tree(
+                tree,
+                options['preferred_tarball_compressors']
                 )
 
-            version_list = parse_result['groups']['version_list']
+            tarballs_to_download = []
+            for i in bases:
+                for j in needed_tarballs:
+                    if j[0].endswith('/' + i) or j[0] == i:
+                        tarballs_to_download.append(i)
 
-            if version_depth_index >= len(version_list):
-                version_index_list.add(0)
-            else:
-                version_index_list.add(int(version_list[version_depth_index]))
-
-        version_index_list = list(version_index_list)
-        version_index_list.sort(reverse=True)
-
-        # version_index_list = version_index_list[:trim_count]
-
-        farther_variants_dicts = dict()
-
-        for i in version_index_list:
-            
-            if not i in farther_variants_dicts:
-                farther_variants_dicts[i] = []
-
-            for j in farther_variants_working:
-                parse_result = wayround_org.utils.tarball.parse_tarball_name(
-                    j[0]
+            tarballs_to_delete = []
+            for i in os.listdir(output_path):
+                ij = wayround_org.utils.path.join(
+                    output_path,
+                    i
                     )
 
-                version_list = parse_result['groups']['version_list']
+                if os.path.isfile(ij):
+                    if i not in bases:
+                        tarballs_to_delete.append(i)
 
-                if version_depth_index >= len(version_list):
-                    version_index_value = 0
-                else:
-                    version_index_valueint(version_list[version_depth_index])
-
-                if version_index_value in version_index_list:
-                    farther_variants_dicts[]
-                    del farther_variants_working[i]
+            # TODO: here must be something smarter, but I'm in horry
+            downloader = self.downloaders['wget']
+            for i in tarballs_to_download:
+                downloader.download(
+                    i[1],
+                    output_path,
+                    new_basename=os.path.basename(i[0]),
+                    stop_event=None,
+                    ignore_invalid_connection_security=(
+                        options['ignore_invalid_connection_security']
+                        ),
+                    downloader_obfuscation_required=(
+                        options['downloader_obfuscation_required']
+                        )
+                    )
 
         return

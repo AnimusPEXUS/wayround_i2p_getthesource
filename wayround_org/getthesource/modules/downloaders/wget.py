@@ -80,7 +80,7 @@ class Wget:
     def start(self):
         with self._start_lock:
             if self._process is None:
-                threading.Thread(target=_program_exit_waiter).start()
+                threading.Thread(target=self._program_exit_waiter).start()
                 self._internal_started_waiter_flag.wait()
 
         return
@@ -129,8 +129,11 @@ class Downloader:
     def get_downloader_code_name(self):
         return 'wget'
 
-    def get_supported_protocols(self):
+    def get_supported_schemas(self):
         return ['http', 'https', 'ftp']
+
+    def get_is_downloader_enabled(self):
+        return True
 
     def __init__(self, controller):
         if not isinstance(
@@ -162,18 +165,18 @@ class Downloader:
         ret = True
 
         proc = Wget(
-                uri,
-                outputdir,
-                new_basename=new_basename,
-                stop_event=stop_event,
-                ignore_invalid_connection_security=(
-                    ignore_invalid_connection_security
-                    ),
-                downloader_obfuscation_required=(
-                    downloader_obfuscation_required
-                    ),
-                logger=self.logger
-                ):
+            uri,
+            outputdir,
+            new_basename=new_basename,
+            stop_event=stop_event,
+            ignore_invalid_connection_security=(
+                ignore_invalid_connection_security
+                ),
+            downloader_obfuscation_required=(
+                downloader_obfuscation_required
+                ),
+            logger=self.logger
+            )
         proc.start()
         ret = proc.wait()
 
