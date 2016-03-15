@@ -44,10 +44,6 @@ class URIExplorer:
 
         return
 
-    def __del__(self):
-        self.logger.stop()
-        return
-
     def _load_providers(self):
         """
         This method should be started only once - on object init

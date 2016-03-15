@@ -10,29 +10,38 @@ class Wget:
 
     def __init__(
             self,
+            downloader,
             uri,
             outputdir,
             new_basename=None,
             stop_event=None,
             ignore_invalid_connection_security=False,
-            downloader_obfuscation_required=False,
-            logger=None
+            downloader_obfuscation_required=False
             ):
 
-        if logger is None:
-            raise ValueError("`logger' must be passed")
+        self._downloader = downloader
 
         self._process = None
         self._stop_event = stop_event
         self._own_stop_event = threading.Event()
 
-        self._logger = logger
+        self._logger = self._downloader.logger
 
         self._start_lock = threading.Lock()
 
         self._internal_started_waiter_flag = threading.Event()
 
         self._process_result = None
+
+        self.uri = uri
+        self.outputdir = outputdir
+        self.new_basename = new_basename
+
+        self.ignore_invalid_connection_security =\
+            ignore_invalid_connection_security
+
+        self.downloader_obfuscation_required =\
+            downloader_obfuscation_required
 
         return
 
@@ -50,21 +59,34 @@ class Wget:
 
     def _program_exit_waiter(self):
 
-        output_filename_options = []
+        output_filename_options = [
+            '-O',
+            wayround_org.utils.path.join(
+                self.outputdir,
+                self.new_basename
+                )
+            ]
 
         connection_sec_check_options = []
+        if self.ignore_invalid_connection_security:
+            connection_sec_check_options.append('--no-check-certificate')
 
         cmd_line = (
-            ['wget'] +
+            ['wget'] + ['-c'] +
             output_filename_options +
-            connection_sec_check_options
+            connection_sec_check_options +
+            [self.uri]
             )
+
+        self._logger.info("wget command is: {}".format(cmd_line))
 
         try:
             self._process = subprocess.Popen(
                 cmd_line,
+                stdin=subprocess.DEVNULL,
                 stdout=self._logger.stdout,
-                stderr=self._logger.stderr
+                stderr=self._logger.stderr,
+                bufsize=0
                 )
         except:
             self._logger.exception(
@@ -73,6 +95,7 @@ class Wget:
 
         self._internal_started_waiter_flag.set()
         ret = self._process.wait()
+        self._logger.info("process exited with code: {}".format(ret))
         self._process_result = ret
         threading.Thread(target=self.stop).start()
         return ret
@@ -89,7 +112,7 @@ class Wget:
         self._own_stop_event.set()
         try:
             self._process.terminate()
-            time.sleep(5)
+            time.sleep(3)
         except:
             self._logger.exception("error")
 
@@ -123,18 +146,6 @@ class Wget:
 
 class Downloader:
 
-    def get_downloader_name(self):
-        return 'GNU/Wget'
-
-    def get_downloader_code_name(self):
-        return 'wget'
-
-    def get_supported_schemas(self):
-        return ['http', 'https', 'ftp']
-
-    def get_is_downloader_enabled(self):
-        return True
-
     def __init__(self, controller):
         if not isinstance(
                 controller,
@@ -148,6 +159,18 @@ class Downloader:
         self.logger = self.controller.logger
 
         return
+
+    def get_downloader_name(self):
+        return 'GNU/Wget'
+
+    def get_downloader_code_name(self):
+        return 'wget'
+
+    def get_supported_schemas(self):
+        return ['http', 'https', 'ftp']
+
+    def get_is_downloader_enabled(self):
+        return True
 
     def download(
             self,
@@ -165,6 +188,7 @@ class Downloader:
         ret = True
 
         proc = Wget(
+            self,
             uri,
             outputdir,
             new_basename=new_basename,
@@ -174,8 +198,7 @@ class Downloader:
                 ),
             downloader_obfuscation_required=(
                 downloader_obfuscation_required
-                ),
-            logger=self.logger
+                )
             )
         proc.start()
         ret = proc.wait()

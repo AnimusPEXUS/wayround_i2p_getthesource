@@ -16,22 +16,15 @@ import wayround_org.getthesource.uriexplorer
 
 class Mirrorer:
 
-    def __init__(self, cfg, uriexplorer):
+    def __init__(self, cfg, working_path, uriexplorer):
 
-        log_dir = '~/.config/wrogts/logs'
+        working_path = wayround_org.utils.path.abspath(working_path)
 
-        try:
-            log_dir = cfg['general']['log_dir']
-        except:
-            logging.warning(
-                "Error getting ['general']['log_dir'] value from config"
-                )
-
-        log_dir = os.path.expanduser(log_dir)
+        self.working_path = working_path
 
         self.logger = wayround_org.utils.log.Log(
-            log_dir,
-            'mirrorer {}'.format(datetime.datetime.utcnow())
+            wayround_org.utils.path.join(self.working_path, 'logs'),
+            'mirrorer'
             )
 
         if not isinstance(
@@ -85,15 +78,15 @@ class Mirrorer:
 
         return
 
-    def work_on_dir(self, path):
+    def work_on_dir(self):
 
         ret = 0
+
+        path = self.working_path
 
         self.logger.info(
             "Got task to perform mirroring in dir: {}".format(path)
             )
-
-        path = wayround_org.utils.path.abspath(path)
 
         m_cfg_path = wayround_org.utils.path.join(
             path,
@@ -118,10 +111,11 @@ class Mirrorer:
                     )
                 )
             for i in m_cfg:
-                self.logger.info("------------------------")
+                self.logger.info('=' * 20)
                 self.logger.info(
                     "processing description #{}".format(m_cfg.index(i))
                     )
+                self.logger.info('-' * 20)
                 options = {
                     'preferred_tarball_compressors': (
                         wayround_org.utils.tarball.
@@ -182,7 +176,21 @@ class Mirrorer:
 
         requested_provider_names.sort()
 
+        self.logger.info(
+            "{} provider name(s) in the list".format(
+                len(requested_provider_names)
+                )
+            )
+        self.logger.info('-' * 20)
+
         for provider_name in requested_provider_names:
+            self.logger.info(
+                "processing provider #{}: {}".format(
+                    requested_provider_names.index(provider_name),
+                    provider_name
+                    )
+                )
+            self.logger.info('-' * 20)
             if provider_name not in self.uriexplorer.list_providers():
                 self.logger.error(
                     "No requested provider named: {}".format(provider_name)
@@ -199,9 +207,27 @@ class Mirrorer:
 
             if provider_target_setting is None:
 
+                self.logger.info("provider projects requested is None, so")
+
                 if provider_has_projects:
+                    self.logger.info(
+                        "    getting list of names supplied by provider"
+                        " and doing all basenames in them"
+                        )
                     for i in provider_project_names:
-                        for j in provider.basenames(i):
+                        basenames = provider.basenames(i)
+                        for j in basenames:
+                            self.logger.info(
+                                "        project: {} ({} of {})"
+                                " basename: {} ({} of {})".format(
+                                    i,
+                                    provider_project_names.index(i) + 1,
+                                    len(provider_project_names),
+                                    j,
+                                    basenames.index(j) + 1,
+                                    len(basenames)
+                                    )
+                                )
                             self.work_on_dir_with_basename(
                                 path,
                                 provider_name,
@@ -210,6 +236,9 @@ class Mirrorer:
                                 settings_options
                                 )
                 else:
+                    self.logger.info(
+                        "    getting list of basenames and doing them all"
+                        )
                     for i in provider.basenames():
                         self.work_on_dir_with_basename(
                             path,
@@ -220,6 +249,12 @@ class Mirrorer:
                             )
 
             elif isinstance(provider_target_setting, list):
+
+                self.logger.info(
+                    "provider projects requested is list so "
+                    " assuming no project division"
+                    )
+
                 if not provider_has_projects:
                     self.logger.error(
                         "setting for `{}' excludes projects subdivision, but "
@@ -238,7 +273,20 @@ class Mirrorer:
                             )
                         continue
 
-                    for j in provider.basenames(i):
+                    basenames = provider.basenames(i)
+
+                    for j in basenames:
+                        self.logger.info(
+                            "    project: {} ({} of {})"
+                            " basename: {} ({} of {})".format(
+                                i,
+                                provider_target_setting.index(i) + 1,
+                                len(provider_target_setting),
+                                j,
+                                basenames.index(j) + 1,
+                                len(basenames)
+                                )
+                            )
                         self.work_on_dir_with_basename(
                             path,
                             provider_name,
@@ -255,8 +303,15 @@ class Mirrorer:
                         )
                     continue
 
-                for i in sorted(list(provider_target_setting.keys())):
-                    for j in sorted(list(provider_target_setting[i].keys())):
+                provider_target_setting_keys = sorted(
+                    list(provider_target_setting.keys())
+                    )
+
+                for i in provider_target_setting_keys:
+                    provider_target_setting_i_keys = sorted(
+                        list(provider_target_setting[i].keys())
+                        )
+                    for j in provider_target_setting_i_keys:
 
                         if i not in provider_project_names:
                             self.logger.error(
@@ -286,6 +341,19 @@ class Mirrorer:
                                     )
                                 continue
 
+                            self.logger.info(
+                                "    project: {} ({} of {})"
+                                " basename: {} ({} of {})".format(
+                                    i,
+                                    provider_target_setting_keys.index(i) + 1,
+                                    len(provider_target_setting_keys),
+                                    j,
+                                    provider_target_setting_i_keys.index(
+                                        j) + 1,
+                                    len(provider_target_setting_i_keys)
+                                    )
+                                )
+
                             self.work_on_dir_with_basename(
                                 path,
                                 provider_name,
@@ -299,7 +367,8 @@ class Mirrorer:
                     " structure for provider:"
                     " {}".format(provider_name)
                     )
-                errors_oqcured = True
+
+        self.logger.info('-' * 20)
 
         return ret
 
@@ -311,7 +380,14 @@ class Mirrorer:
             basename,
             options
             ):
+
+        self.logger.info(
+            "task: {}, {}, {}".format(provider, project, basename)
+            )
+
         path = wayround_org.utils.path.abspath(path)
+
+        provired_obj = self.uriexplorer.providers[provider]
 
         project_path_part = []
         if project is not None:
@@ -325,11 +401,21 @@ class Mirrorer:
             basename
             )
 
+        self.logger.info("  output dir going to be: {}".format(output_path))
+
         os.makedirs(output_path, exist_ok=True)
 
-        tarballs = self.uriexplorer.list_tarballs(provider, project)
+        self.logger.info(
+            "  getting list of tarballs for {}:{}".format(provider, project)
+            )
+        tarballs = provired_obj.tarballs(project)  # [provider][]
+        self.logger.info("    got {} item(s)".format(len(tarballs)))
 
         needed_tarballs = []
+
+        self.logger.info(
+            "  filtering tarballs list for `{}' basename".format(basename)
+            )
 
         for i in tarballs:
             parse_result = wayround_org.utils.tarball.parse_tarball_name(i[0])
@@ -338,20 +424,28 @@ class Mirrorer:
             if parse_result['groups']['name'] == basename:
                 needed_tarballs.append(i)
 
+        self.logger.info("    got {} item(s)".format(len(needed_tarballs)))
+
         del tarballs
 
         only_latests = options.get('only_latests', 3)
 
         if isinstance(only_latests, int):
 
+            self.logger.info(
+                "  truncating up to {} is requested".format(only_latests)
+                )
+
             filter_for_latests_res = []
 
             bases = []
 
-            for i in only_latests:
+            for i in needed_tarballs:
                 bases.append(i[0])
 
-            wayround_org.utils.version.remove_invalid_bases(bases)
+            bases = wayround_org.utils.tarball.remove_invalid_tarball_names(
+                bases
+                )
 
             tree = wayround_org.utils.version.same_base_structurize_by_version(
                 bases
@@ -364,11 +458,13 @@ class Mirrorer:
                 options['preferred_tarball_compressors']
                 )
 
+            self.logger.info("    got {} item(s)".format(len(bases)))
+
             tarballs_to_download = []
             for i in bases:
                 for j in needed_tarballs:
                     if j[0].endswith('/' + i) or j[0] == i:
-                        tarballs_to_download.append(i)
+                        tarballs_to_download.append(j)
 
             tarballs_to_delete = []
             for i in os.listdir(output_path):
@@ -380,6 +476,21 @@ class Mirrorer:
                 if os.path.isfile(ij):
                     if i not in bases:
                         tarballs_to_delete.append(i)
+
+            self.logger.info(
+                "  {} file(s) will be checked for download".format(
+                    len(tarballs_to_download)
+                    )
+                )
+
+            self.logger.info(
+                "  {} file(s) is marked as truncated"
+                " (and will be deleted)".format(
+                    len(tarballs_to_delete)
+                    )
+                )
+
+            # print("tarballs_to_download: {}".format(tarballs_to_download))
 
             # TODO: here must be something smarter, but I'm in horry
             downloader = self.downloaders['wget']

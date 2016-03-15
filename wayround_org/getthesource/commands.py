@@ -260,8 +260,9 @@ def mirrorer_work_on_dir(command_name, opts, args, adds):
         uriexplorer = wayround_org.getthesource.uriexplorer.URIExplorer(cfg)
         mirrorer = wayround_org.getthesource.mirrorer.Mirrorer(
             cfg,
+            working_directory,
             uriexplorer
             )
-        ret = mirrorer.work_on_dir(working_directory)
-
+        ret = mirrorer.work_on_dir()
+        
     return ret
