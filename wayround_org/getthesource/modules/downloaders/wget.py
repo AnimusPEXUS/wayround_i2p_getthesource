@@ -86,7 +86,7 @@ class Wget:
                 stdin=subprocess.DEVNULL,
                 stdout=self._logger.stdout,
                 stderr=self._logger.stderr,
-                bufsize=0
+                # bufsize=0
                 )
         except:
             self._logger.exception(
