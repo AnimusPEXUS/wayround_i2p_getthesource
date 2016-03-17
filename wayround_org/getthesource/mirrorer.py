@@ -10,6 +10,7 @@ import yaml
 import wayround_org.utils.path
 import wayround_org.utils.tarball
 import wayround_org.utils.version
+import wayround_org.utils.checksum
 
 import wayround_org.getthesource.uriexplorer
 
@@ -127,7 +128,8 @@ class Mirrorer:
                     # NOTE: using and enabling this may be unsafe
                     'delete_old_tarballs': False,
 
-                    'downloader_obfuscation_required': False
+                    'downloader_obfuscation_required': False,
+                    'redownload_prevention_checksum': 'sha512'
                     }
 
                 if 'options' in i:
@@ -441,7 +443,7 @@ class Mirrorer:
             bases = []
 
             for i in needed_tarballs:
-                bases.append(i[0])
+                bases.append(os.path.basename(i[0]))
 
             bases = wayround_org.utils.tarball.remove_invalid_tarball_names(
                 bases
@@ -462,31 +464,45 @@ class Mirrorer:
 
             tarballs_to_download = []
             for i in bases:
+                # print('i: {}'.format(i))
                 for j in needed_tarballs:
-                    if j[0].endswith('/' + i) or j[0] == i:
+                    # print('j[0]: {}'.format(j[0]))
+                    if j[0].endswith('/' + i):
                         tarballs_to_download.append(j)
 
             tarballs_to_delete = []
             for i in os.listdir(output_path):
-                ij = wayround_org.utils.path.join(
-                    output_path,
-                    i
-                    )
+                j_found = False
+                for j in (
+                        wayround_org.utils.tarball.KNOWN_SIGNING_EXTENSIONS
+                        + ['.sha1', '.sha512', '.sha224', '.sha256', '.sha384'
+                            '.md5'
+                           ]
+                        ):
+                    if i.endswith(j):
+                        j_found = True
+                        break
+                if j_found:
+                    continue
+
+                ij = wayround_org.utils.path.join(output_path, i)
 
                 if os.path.isfile(ij):
+                    # print("is i in bases?: {}, {}, {}".format(i in bases, i, bases))
                     if i not in bases:
                         tarballs_to_delete.append(i)
 
             self.logger.info(
-                "  {} file(s) will be checked for download".format(
+                "  {} file(s) is marked for download".format(
                     len(tarballs_to_download)
                     )
                 )
 
             self.logger.info(
                 "  {} file(s) is marked as truncated"
-                " (and will be deleted)".format(
-                    len(tarballs_to_delete)
+                " (and will be deleted) (deletion is disabled for bugs): {}".format(
+                    len(tarballs_to_delete),
+                    tarballs_to_delete
                     )
                 )
 
@@ -495,17 +511,108 @@ class Mirrorer:
             # TODO: here must be something smarter, but I'm in horry
             downloader = self.downloaders['wget']
             for i in tarballs_to_download:
-                downloader.download(
-                    i[1],
+                new_basename = os.path.basename(i[0])
+                new_basename_full = wayround_org.utils.path.join(
                     output_path,
-                    new_basename=os.path.basename(i[0]),
-                    stop_event=None,
-                    ignore_invalid_connection_security=(
-                        options['ignore_invalid_connection_security']
-                        ),
-                    downloader_obfuscation_required=(
-                        options['downloader_obfuscation_required']
-                        )
+                    new_basename
                     )
+                new_basename_full_cs = '{}.{}'.format(
+                    new_basename_full,
+                    options['redownload_prevention_checksum']
+                    )
+                actual_cs = wayround_org.utils.checksum.make_file_checksum(
+                    new_basename_full,
+                    options['redownload_prevention_checksum']
+                    )
+                saved_cs = None
+
+                if os.path.isfile(new_basename_full):
+                    if isinstance(actual_cs, str):
+                        actual_cs = actual_cs.lower()
+                        if os.path.isfile(new_basename_full_cs):
+                            with open(new_basename_full_cs) as f:
+                                saved_cs = f.read(1000)  # overflow protection
+                            if not isinstance(saved_cs, str):
+                                saved_cs = None
+                            else:
+                                saved_cs = saved_cs.strip().lower()
+                    else:
+                        raise Exception("programming error")
+                else:
+                    if os.path.isfile(new_basename_full_cs):
+                        os.unlink(new_basename_full_cs)
+
+                if (actual_cs != saved_cs
+                        or (actual_cs == saved_cs is None)
+                        or actual_cs is None
+                        or saved_cs is None
+                        or (not os.path.isfile(new_basename_full))
+                        ):
+                    if os.path.isfile(new_basename_full_cs):
+                        os.path.unlink(new_basename_full_cs)
+
+                    dd_res = downloader.download(
+                        i[1],
+                        output_path,
+                        new_basename=new_basename,
+                        stop_event=None,
+                        ignore_invalid_connection_security=(
+                            options['ignore_invalid_connection_security']
+                            ),
+                        downloader_obfuscation_required=(
+                            options['downloader_obfuscation_required']
+                            )
+                        )
+
+                    if dd_res == 0:
+                        actual_cs = (
+                            wayround_org.utils.checksum.make_file_checksum(
+                                new_basename_full,
+                                options['redownload_prevention_checksum']
+                                )
+                            )
+                        actual_cs = actual_cs.lower()
+                        with open(new_basename_full_cs, 'w') as f:
+                            f.write(actual_cs)
+
+                for j in wayround_org.utils.tarball.KNOWN_SIGNING_EXTENSIONS:
+                    # TODO: this is disabled, as generates too many unneeded 
+                    #      trafic. need to check in uriexplorer before 
+                    #      attempting to download
+                    continue 
+                    new_basename_j = new_basename + j
+                    jj = wayround_org.utils.path.join(
+                        output_path,
+                        new_basename_j
+                        )
+
+                    if os.path.isfile(jj):
+                        if os.stat(jj).st_size == 0:
+                            os.unlink(jj)
+
+                    if not os.path.isfile(jj):
+                        dd_res = downloader.download(
+                            '{}{}'.format(i[1], j),
+                            output_path,
+                            new_basename_j,
+                            stop_event=None,
+                            ignore_invalid_connection_security=(
+                                options['ignore_invalid_connection_security']
+                                ),
+                            downloader_obfuscation_required=(
+                                options['downloader_obfuscation_required']
+                                )
+                            )
+
+                        if dd_res != 0:
+                            if os.path.isfile(jj):
+                                os.unlink(jj)
+
+            '''
+            for i in tarballs_to_delete:
+                ij = wayround_org.utils.path.join(output_path, i)
+                self.logger.info("removing {}".format(i))
+                os.unlink(ij)
+            '''
 
         return

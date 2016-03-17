@@ -98,7 +98,7 @@ class Wget:
         self._logger.info("process exited with code: {}".format(ret))
         self._process_result = ret
         threading.Thread(target=self.stop).start()
-        return ret
+        return
 
     def start(self):
         with self._start_lock:
