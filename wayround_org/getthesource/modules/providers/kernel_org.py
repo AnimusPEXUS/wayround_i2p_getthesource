@@ -25,7 +25,7 @@ import wayround_org.getthesource.modules.providers.templates.std_https
 
 class Provider(
         wayround_org.getthesource.modules.providers.templates.std_https.
-        StandardHttpsWithProjects
+        StandardHttpsWithOutProjects
         ):
 
     def __init__(self, controller):
@@ -44,10 +44,10 @@ class Provider(
         return
 
     def get_provider_name(self):
-        return 'GNU.ORG'
+        return 'kernel.org'
 
     def get_provider_code_name(self):
-        return 'gnu.org'
+        return 'kernel.org'
 
     def get_protocol_description(self):
         return 'https'
@@ -60,13 +60,13 @@ class Provider(
         return True
 
     def get_provider_main_site_uri(self):
-        return 'https://gnu.org/'
+        return 'https://www.kernel.org/'
 
     def get_provider_main_downloads_uri(self):
-        return 'https://ftp.gnu.org/gnu/'
+        return 'https://www.kernel.org/pub/'
 
     def get_project_param_used(self):
-        return True
+        return False
 
     def get_project_param_can_be_None(self):
         return False
@@ -76,76 +76,6 @@ class Provider(
 
     def get_cache_dir(self):
         return self.cache_dir
-
-    def get_project_names(self, use_cache=True):
-        ret = None
-
-        if use_cache:
-            dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
-                self.cache_dir,
-                '({})-(project_names)'.format(
-                    self.get_provider_name()
-                    ),
-                datetime.timedelta(days=1),
-                'sha1',
-                self.get_project_names,
-                freshdata_callback_kwargs=dict(use_cache=False)
-                )
-            ret = dc.get_data_cache()
-        else:
-            page = None
-            try:
-                pkg_list_page = urllib.request.urlopen(
-                    'https://gnu.org/software/software.html'
-                    )
-                page_text = pkg_list_page.read()
-                pkg_list_page.close()
-                page_parsed = lxml.html.document_fromstring(page_text)
-            except:
-                pass
-
-            tag = None
-
-            if page_parsed is not None:
-                tag = page_parsed.find('.//body')
-
-            if tag is not None:
-                tag = tag.find('div[@class="inner"]')
-
-            if tag is not None:
-                tag = tag.find('div[@id="content"]')
-
-            uls_needed = 2
-
-            if tag is not None:
-                ases = list()
-                ul_found = False
-
-                for i in tag:
-
-                    if ul_found:
-                        if type(i) == lxml.html.HtmlElement:
-                            if i.tag == 'a':
-                                ir = i.get('href', None)
-                                if ir is not None:
-                                    ases.append(ir.strip('/'))
-                            else:
-                                break
-                    else:
-                        if type(i) == lxml.html.HtmlElement and i.tag == 'ul':
-                            uls_needed -= 1
-                            if uls_needed == 0:
-                                ul_found = True
-
-                ret = ases
-
-                '''
-                for i in ['8sync']:
-                    while i in ret:
-                        ret.remove(i)
-                '''
-
-        return ret
 
     def listdir(self, project, path='/', use_cache=True):
         """
@@ -160,21 +90,25 @@ class Provider(
             dirs == files == None - means error
         """
 
+        if project is not None:
+            raise ValueError(
+                "`project' for `kernel.org' provider must always be None"
+                )
+
         if use_cache:
             digest = hashlib.sha1()
             digest.update(path.encode('utf-8'))
             digest = digest.hexdigest().lower()
             dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
                 self.cache_dir,
-                '({})-(listdir)-({})-({})'.format(
+                '({})-(listdir)-({})'.format(
                     self.get_provider_name(),
-                    project,
                     digest
                     ),
                 datetime.timedelta(days=1),
                 'sha1',
                 self.listdir,
-                freshdata_callback_args=(project,),
+                freshdata_callback_args=tuple(),
                 freshdata_callback_kwargs=dict(path=path, use_cache=False)
                 )
             ret = dc.get_data_cache()
@@ -182,9 +116,9 @@ class Provider(
 
             ret = None, None
 
-            html_walk = wayround_org.utils.htmlwalk.HTMLWalk('ftp.gnu.org')
+            html_walk = wayround_org.utils.htmlwalk.HTMLWalk('www.kernel.org')
 
-            path = wayround_org.utils.path.join('gnu', project, path)
+            path = wayround_org.utils.path.join('pub', path)
 
             folders, files = html_walk.listdir2(path)
 

@@ -253,7 +253,7 @@ class Mirrorer:
             elif isinstance(provider_target_setting, list):
 
                 self.logger.info(
-                    "provider projects requested is list so "
+                    "provider projects requested is list so"
                     " assuming no project division"
                     )
 
@@ -408,7 +408,7 @@ class Mirrorer:
         os.makedirs(output_path, exist_ok=True)
 
         self.logger.info(
-            "  getting list of tarballs for {}:{}".format(provider, project)
+            "  getting list of tarballs for `{}:{}'".format(provider, project)
             )
         tarballs = provired_obj.tarballs(project)  # [provider][]
         self.logger.info("    got {} item(s)".format(len(tarballs)))
