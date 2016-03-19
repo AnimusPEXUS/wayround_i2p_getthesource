@@ -95,6 +95,17 @@ class Provider(
                 "`project' for `kernel.org' provider must always be None"
                 )
 
+        if path in [
+                '/linux/kernel/people',
+                '/linux/devel/gcc'
+                ]:
+            return [], {}
+
+        if path.endswith('.git'):
+            return [], {}
+
+        self.logger.info("getting listdir at: {}".format(path))
+
         if use_cache:
             digest = hashlib.sha1()
             digest.update(path.encode('utf-8'))
@@ -108,15 +119,16 @@ class Provider(
                 datetime.timedelta(days=1),
                 'sha1',
                 self.listdir,
-                freshdata_callback_args=tuple(),
+                freshdata_callback_args=(project, ),
                 freshdata_callback_kwargs=dict(path=path, use_cache=False)
                 )
             ret = dc.get_data_cache()
         else:
-
             ret = None, None
 
-            html_walk = wayround_org.utils.htmlwalk.HTMLWalk('www.kernel.org')
+            html_walk = wayround_org.utils.htmlwalk.HTMLWalk(
+                'www.kernel.org'
+                )
 
             path = wayround_org.utils.path.join('pub', path)
 
@@ -124,14 +136,15 @@ class Provider(
 
             files_d = {}
             for i in files:
-                files_d[i] = '{}{}'.format(
-                    self.get_provider_main_downloads_uri(),
+                new_uri = '{}{}'.format(
+                    'https://www.kernel.org/',
                     wayround_org.utils.path.join(
-                        project,
                         path,
                         i
                         )
                     )
+                print("new_uri: {}".format(new_uri))
+                files_d[i] = new_uri
 
             files = files_d
 

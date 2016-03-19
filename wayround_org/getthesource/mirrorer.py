@@ -241,7 +241,7 @@ class Mirrorer:
                     self.logger.info(
                         "    getting list of basenames and doing them all"
                         )
-                    for i in provider.basenames():
+                    for i in provider.basenames(None):
                         self.work_on_dir_with_basename(
                             path,
                             provider_name,
@@ -455,10 +455,16 @@ class Mirrorer:
 
             wayround_org.utils.version.truncate_ver_tree(tree, only_latests)
 
+            # self.logger.info(
+            #     "    before bases from tree: {}".format(len(bases))
+            #     )
             bases = wayround_org.utils.version.get_bases_from_ver_tree(
                 tree,
                 options['preferred_tarball_compressors']
                 )
+            # self.logger.info(
+            #     "    after bases from tree: {}".format(len(bases))
+            #     )
 
             self.logger.info("    got {} item(s)".format(len(bases)))
 
@@ -493,8 +499,9 @@ class Mirrorer:
                         tarballs_to_delete.append(i)
 
             self.logger.info(
-                "  {} file(s) is marked for download".format(
-                    len(tarballs_to_download)
+                "  {} file(s) is marked for download: {}".format(
+                    len(tarballs_to_download),
+                    [os.path.basename(i[0]) for i in tarballs_to_download]
                     )
                 )
 
@@ -520,13 +527,14 @@ class Mirrorer:
                     new_basename_full,
                     options['redownload_prevention_checksum']
                     )
-                actual_cs = wayround_org.utils.checksum.make_file_checksum(
-                    new_basename_full,
-                    options['redownload_prevention_checksum']
-                    )
+                actual_cs = None
                 saved_cs = None
 
                 if os.path.isfile(new_basename_full):
+                    actual_cs = wayround_org.utils.checksum.make_file_checksum(
+                        new_basename_full,
+                        options['redownload_prevention_checksum']
+                        )
                     if isinstance(actual_cs, str):
                         actual_cs = actual_cs.lower()
                         if os.path.isfile(new_basename_full_cs):
@@ -547,7 +555,7 @@ class Mirrorer:
                         or actual_cs is None
                         or saved_cs is None
                         or (not os.path.isfile(new_basename_full))
-                        ):
+                    ):
                     if os.path.isfile(new_basename_full_cs):
                         os.path.unlink(new_basename_full_cs)
 
@@ -576,10 +584,10 @@ class Mirrorer:
                             f.write(actual_cs)
 
                 for j in wayround_org.utils.tarball.KNOWN_SIGNING_EXTENSIONS:
-                    # TODO: this is disabled, as generates too many unneeded 
-                    #      trafic. need to check in uriexplorer before 
+                    # TODO: this is disabled, as generates too many unneeded
+                    #      trafic. need to check in uriexplorer before
                     #      attempting to download
-                    continue 
+                    continue
                     new_basename_j = new_basename + j
                     jj = wayround_org.utils.path.join(
                         output_path,
