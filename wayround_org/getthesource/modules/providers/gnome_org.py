@@ -44,26 +44,22 @@ class Provider(
         return
 
     def get_provider_name(self):
-        return 'kernel.org'
+        return 'GNOME.ORG'
 
     def get_provider_code_name(self):
-        return 'kernel.org'
+        return 'gnome.org'
 
     def get_protocol_description(self):
         return 'https'
 
     def get_is_provider_enabled(self):
-        # NOTE: here can be provided warning text printing in case is
-        #       module decides to return False. For instance if torsocks
-        #       is missing in system and module requires it's presence to be
-        #       enabled
         return True
 
     def get_provider_main_site_uri(self):
-        return 'https://www.kernel.org/'
+        return 'https://www.gnome.org/'
 
     def get_provider_main_downloads_uri(self):
-        return 'https://www.kernel.org/pub/'
+        return 'https://download.gnome.org/sources/'
 
     def get_project_param_used(self):
         return False
@@ -73,6 +69,9 @@ class Provider(
 
     def get_cache_dir(self):
         return self.cache_dir
+    
+    def listdir_timeout(self):
+        return datetime.timedelta(days=10)
 
     def listdir(self, project, path='/', use_cache=True):
         """
@@ -93,8 +92,6 @@ class Provider(
                 )
 
         if path in [
-                '/linux/kernel/people',
-                '/linux/devel/gcc'
                 ]:
             return [], {}
 
@@ -124,17 +121,17 @@ class Provider(
             ret = None, None
 
             html_walk = wayround_org.utils.htmlwalk.HTMLWalk(
-                'www.kernel.org'
+                'download.gnome.org'
                 )
 
-            path = wayround_org.utils.path.join('pub', path)
+            path = wayround_org.utils.path.join('sources', path)
 
             folders, files = html_walk.listdir2(path)
 
             files_d = {}
             for i in files:
                 new_uri = '{}{}'.format(
-                    'https://www.kernel.org/',
+                    'https://download.gnome.org/',
                     wayround_org.utils.path.join(
                         path,
                         i

@@ -241,7 +241,7 @@ class Mirrorer:
                     self.logger.info(
                         "    getting list of basenames and doing them all"
                         )
-                    for i in provider.basenames(None):
+                    for i in sorted(provider.basenames(None)):
                         self.work_on_dir_with_basename(
                             path,
                             provider_name,

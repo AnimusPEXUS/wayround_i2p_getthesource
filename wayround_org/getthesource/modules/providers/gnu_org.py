@@ -25,7 +25,7 @@ import wayround_org.getthesource.modules.providers.templates.std_https
 
 class Provider(
         wayround_org.getthesource.modules.providers.templates.std_https.
-        StandardHttpsWithProjects
+        StandardHttps
         ):
 
     def __init__(self, controller):
@@ -67,9 +67,6 @@ class Provider(
 
     def get_project_param_used(self):
         return True
-
-    def get_project_param_can_be_None(self):
-        return False
 
     def get_cs_method_name(self):
         return 'sha1'
@@ -171,7 +168,7 @@ class Provider(
                     project,
                     digest
                     ),
-                datetime.timedelta(days=1),
+                self.listdir_timeout(),
                 'sha1',
                 self.listdir,
                 freshdata_callback_args=(project,),
