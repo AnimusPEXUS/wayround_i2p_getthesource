@@ -1,0 +1,21 @@
+This is example for running wrogts in simple mode
+
+Wrogts simple mode is simmple command line mode without need for any
+configuration files: everything which might bee needed to be
+configured is present in options
+
+So here is example command line for making mirror of
+http://www.linux-pam.org/library/
+
+wrogts simple 'http://www.linux-pam.org/library/' OUTPUT_DIR
+
+where OUTPUT_DIR is path to dir in which you wish to see work done.
+
+OUTPUT_DIR's structure will be following:
+
+simple-cache/
+simple-logs/
+downloads/{basename}/{tarballs}
+
+where {basename} is name of one of tarballs been found on http/html
+site directory, and {tarballs} are downloaded tarballs

@@ -298,6 +298,14 @@ def simple_mirroring(command_name, opts, args, adds):
         uri = args[0]
         working_directory = args[1]
 
+        exclude_paths = opts.get('-X', [])
+        if isinstance(exclude_paths, str):
+            exclude_paths = exclude_paths.split(',')
+
+        reject_files = opts.get('-R', [])
+        if isinstance(reject_files, str):
+            reject_files = reject_files.split(',')
+
         if 'general' not in cfg:
             cfg['general'] = {}
 
@@ -312,8 +320,8 @@ def simple_mirroring(command_name, opts, args, adds):
             )
 
         simple_config = {
-            'exclude_paths': [],
-            'reject_files': [],
+            'exclude_paths': exclude_paths,
+            'reject_files': reject_files,
             'target_uri': uri
             }
 
