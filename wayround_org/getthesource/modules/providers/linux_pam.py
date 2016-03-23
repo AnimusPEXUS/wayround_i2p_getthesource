@@ -41,27 +41,29 @@ class Provider(
 
         self.cache_dir = controller.cache_dir
         self.logger = controller.logger
-
-        self._inmemory_cache_for_tarballs = None
         return
 
     def get_provider_name(self):
-        return 'GNOME.ORG'
+        return 'linux-pam.org'
 
     def get_provider_code_name(self):
-        return 'gnome.org'
+        return 'linux_pam'
 
     def get_protocol_description(self):
-        return 'https'
+        return 'http'
 
     def get_is_provider_enabled(self):
+        # NOTE: here can be provided warning text printing in case is
+        #       module decides to return False. For instance if torsocks
+        #       is missing in system and module requires it's presence to be
+        #       enabled
         return True
 
     def get_provider_main_site_uri(self):
-        return 'https://www.gnome.org/'
+        return 'http://www.linux-pam.org/'
 
     def get_provider_main_downloads_uri(self):
-        return 'https://download.gnome.org/sources/'
+        return 'http://www.linux-pam.org/library/'
 
     def get_project_param_used(self):
         return False
@@ -71,9 +73,6 @@ class Provider(
 
     def get_cache_dir(self):
         return self.cache_dir
-
-    def listdir_timeout(self):
-        return datetime.timedelta(days=10)
 
     def listdir(self, project, path='/', use_cache=True):
         """
@@ -123,17 +122,18 @@ class Provider(
             ret = None, None
 
             html_walk = wayround_org.utils.htmlwalk.HTMLWalk(
-                'download.gnome.org'
+                'www.linux-pam.org',
+                scheme='http'
                 )
 
-            path = wayround_org.utils.path.join('sources', path)
+            path = wayround_org.utils.path.join('library', path)
 
             folders, files = html_walk.listdir2(path)
 
             files_d = {}
             for i in files:
                 new_uri = '{}{}'.format(
-                    'https://download.gnome.org/',
+                    'http://www.linux-pam.org/',
                     wayround_org.utils.path.join(
                         path,
                         i
@@ -146,12 +146,3 @@ class Provider(
             ret = folders, files
 
         return ret
-
-    def tarballs(self, project, use_cache=True, use_tree_cache=True):
-        if self._inmemory_cache_for_tarballs is None:
-            self._inmemory_cache_for_tarballs = super().tarballs(
-                project,
-                use_cache=use_cache,
-                use_tree_cache=use_tree_cache
-                )
-        return self._inmemory_cache_for_tarballs

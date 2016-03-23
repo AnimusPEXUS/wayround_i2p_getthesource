@@ -1,4 +1,5 @@
 
+import os.path
 import collections
 import yaml
 import pprint
@@ -23,6 +24,7 @@ def commands():
         ('list-basenames', basename_list),
         #('find-tarball-uris', find_tarball_uris)
         ('run-mirroring', mirrorer_work_on_dir),
+        ('simple', simple_mirroring),
     ])
     return ret
 
@@ -264,5 +266,80 @@ def mirrorer_work_on_dir(command_name, opts, args, adds):
             uriexplorer
             )
         ret = mirrorer.work_on_dir()
-        
+
+    return ret
+
+
+def simple_mirroring(command_name, opts, args, adds):
+    """
+    Do simple mirroring of HTTPS directory tree into output dir.
+
+    This command does not use config files. It's simply scans server's
+    dirs for files and downloads tarballs into separate (by basename) dirs.
+
+    SYNOPSIS
+        simple URI WORKDIRNAME
+    """
+
+    cfg = load_config(CONFIG_PATH)
+    ret = 0
+
+    if cfg is None:
+        ret = 2
+
+    if ret == 0:
+
+        if len(args) != 2:
+            logging.error("exactly 2 argsuments must be passed")
+            ret = 1
+
+    if ret == 0:
+
+        uri = args[0]
+        working_directory = args[1]
+
+        if 'general' not in cfg:
+            cfg['general'] = {}
+
+        cfg['general']['log_dir'] = wayround_org.utils.path.join(
+            working_directory,
+            'simple-logs'
+            )
+
+        cfg['general']['cache_dir'] = wayround_org.utils.path.join(
+            working_directory,
+            'simple-cache'
+            )
+
+        simple_config = {
+            'exclude_paths': [],
+            'reject_files': [],
+            'target_uri': uri
+            }
+
+        mirrorer_cfg = [
+            {
+                'options': {},
+                'targets': {'std_simple': None}
+                }
+            ]
+
+        working_directory = os.path.abspath(working_directory)
+
+        os.makedirs(working_directory, exist_ok=True)
+
+        uriexplorer = wayround_org.getthesource.uriexplorer.URIExplorer(
+            cfg,
+            simple_mode=True,
+            simple_config=simple_config
+            )
+
+        mirrorer = wayround_org.getthesource.mirrorer.Mirrorer(
+            cfg,
+            working_directory,
+            uriexplorer
+            )
+
+        ret = mirrorer.work_on_dir(mirrorer_cfg)
+
     return ret

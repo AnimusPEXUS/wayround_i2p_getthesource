@@ -10,7 +10,7 @@ import wayround_org.utils.log
 
 class URIExplorer:
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, simple_mode=False, simple_config=None):
 
         log_dir = '~/.config/wrogts/logs'
 
@@ -38,13 +38,15 @@ class URIExplorer:
 
         self.cache_dir = os.path.expanduser(self.cache_dir)
 
+        self.simple_config = simple_config
+
         self.providers = {}
 
-        self._load_providers()
+        self._load_providers(simple_mode=simple_mode)
 
         return
 
-    def _load_providers(self):
+    def _load_providers(self, simple_mode=False):
         """
         This method should be started only once - on object init
         """
@@ -53,25 +55,30 @@ class URIExplorer:
             'modules',
             'providers'
             )
-        providers = []
-        for i in sorted(os.listdir(providers_dir)):
-            if i.endswith('.py'):
-                j = wayround_org.utils.path.join(
-                    providers_dir,
-                    i
-                    )
-                if os.path.isfile(j):
-                    providers.append(i[:-3])
 
-        if '__init__' in providers:
-            providers.remove('__init__')
+        providers = []
+
+        if simple_mode:
+            providers.append('std_simple')
+        else:
+            for i in sorted(os.listdir(providers_dir)):
+                if i.endswith('.py'):
+                    j = wayround_org.utils.path.join(
+                        providers_dir,
+                        i
+                        )
+                    if os.path.isfile(j):
+                        providers.append(i[:-3])
+
+            if '__init__' in providers:
+                providers.remove('__init__')
 
         for i in providers:
             mod = importlib.import_module(
                 'wayround_org.getthesource.modules.providers.{}'.format(i)
                 )
             p = mod.Provider(self)
-            if p.get_is_provider_enabled():
+            if p.get_is_provider_enabled() or i == 'std_simple':
                 self.providers[p.get_provider_code_name()] = p
             del mod
             del p
@@ -141,38 +148,3 @@ class URIExplorer:
 
     def render_provider_info(self, provider_name):
         return
-
-    '''
-    # NOTE: looks like this block is not needed eventually
-    def get_tarball_uris(self, basename, provider, project):
-        """
-        this method returns list with 2-tuples, where
-            tuple[0] - is tarball base filename
-            tuple[1] - complete url to get it
-
-        basename - string - base name of tarballs to search for.
-            for instance: 'wine', 'gcc', 'gcc-core', 'linux' etc.
-
-        provider parameter can be None, string or list of strings, where
-            None - means to try all providers GetTheSource knows of
-            list - same as None, but try only listed providers
-            string - treated as list of strings with single item
-
-        project parameter can be None, string or list of strings:
-            some providers can be additioanlly subdivided by projects, and
-            can not be treeted as one pice. this is sf.net for instance,
-            where only few projects of all resembles some usefull items. so in
-            case of sf.net, project with value of None - means - get
-            all usefull project names of sf.net and search for tarballs with
-            basename among them, but is project name is string or list for
-            strings, search only among listed projects
-
-            None - search among all projects, all useful projects or among
-                entire provider site, depending on nature of provider in
-                question
-            list - same as None, but try only listed projects
-            string - treated as list of strings with single item
-        """
-
-        return
-    '''

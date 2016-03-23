@@ -11,6 +11,7 @@ import wayround_org.utils.path
 import wayround_org.utils.tarball
 import wayround_org.utils.version
 import wayround_org.utils.checksum
+import wayround_org.utils.uri
 
 import wayround_org.getthesource.uriexplorer
 
@@ -79,7 +80,7 @@ class Mirrorer:
 
         return
 
-    def work_on_dir(self):
+    def work_on_dir(self, m_cfg=None):
 
         ret = 0
 
@@ -89,15 +90,17 @@ class Mirrorer:
             "Got task to perform mirroring in dir: {}".format(path)
             )
 
-        m_cfg_path = wayround_org.utils.path.join(
-            path,
-            'wrogts_mirrorer.conf.yaml'
-            )
+        if m_cfg is None:
 
-        self.logger.info("loading config: {}".format(m_cfg_path))
+            m_cfg_path = wayround_org.utils.path.join(
+                path,
+                'wrogts_mirrorer.conf.yaml'
+                )
 
-        with open(m_cfg_path) as f:
-            m_cfg = yaml.load(f.read())
+            self.logger.info("loading config: {}".format(m_cfg_path))
+
+            with open(m_cfg_path) as f:
+                m_cfg = yaml.load(f.read())
 
         if not isinstance(m_cfg, list):
             self.logger.error(
@@ -551,10 +554,10 @@ class Mirrorer:
                         os.unlink(new_basename_full_cs)
 
                 if (actual_cs != saved_cs
-                        or (actual_cs == saved_cs is None)
-                        or actual_cs is None
-                        or saved_cs is None
-                        or (not os.path.isfile(new_basename_full))
+                    or (actual_cs == saved_cs is None)
+                    or actual_cs is None
+                    or saved_cs is None
+                    or (not os.path.isfile(new_basename_full))
                     ):
                     if os.path.isfile(new_basename_full_cs):
                         os.path.unlink(new_basename_full_cs)
@@ -623,4 +626,24 @@ class Mirrorer:
                 os.unlink(ij)
             '''
 
+        return
+
+
+class MirrorerSimple(Mirrorer):
+
+    def __init__(self, cfg, uriexplorer, uri, working_path):
+
+        self.standard_provider_module = importlib.import_module(
+            'wayround_org.getthesource.modules.droviders.standard'
+            )
+
+        uri_obj = wayround_org.utils.uri.HttpURI.new_from_string(uri)
+
+        self.standard_provider = standard_provider_module.Provider(
+            self,
+            domain=uri_obj.authority.host,
+            path=uri_obj.path,
+            scheme=uri_obj.scheme,
+            port=uri_obj.authority.port
+            )
         return

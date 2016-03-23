@@ -1,25 +1,10 @@
 
-"""
-Module for getting tarballs and they' related information from gnu.org
-"""
-
-import os.path
-import logging
-import urllib.request
-import datetime
+import fnmatch
 import hashlib
 
-import yaml
-import lxml.html
-
 import wayround_org.utils.path
-import wayround_org.utils.data_cache
-import wayround_org.utils.data_cache_miscs
-import wayround_org.utils.tarball
 import wayround_org.utils.htmlwalk
 
-
-import wayround_org.getthesource.uriexplorer
 import wayround_org.getthesource.modules.providers.templates.std_https
 
 
@@ -29,7 +14,6 @@ class Provider(
         ):
 
     def __init__(self, controller):
-
         if not isinstance(
                 controller,
                 wayround_org.getthesource.uriexplorer.URIExplorer
@@ -41,39 +25,32 @@ class Provider(
 
         self.cache_dir = controller.cache_dir
         self.logger = controller.logger
-
-        self._inmemory_cache_for_tarballs = None
+        self.simple_config = controller.simple_config
         return
 
     def get_provider_name(self):
-        return 'GNOME.ORG'
+        return 'std_simple'
 
     def get_provider_code_name(self):
-        return 'gnome.org'
+        return 'std_simple'
 
     def get_protocol_description(self):
-        return 'https'
+        return ['https', 'http']
 
     def get_is_provider_enabled(self):
-        return True
+        return False
 
     def get_provider_main_site_uri(self):
-        return 'https://www.gnome.org/'
+        return None
 
     def get_provider_main_downloads_uri(self):
-        return 'https://download.gnome.org/sources/'
+        return None
 
     def get_project_param_used(self):
         return False
 
     def get_cs_method_name(self):
         return 'sha1'
-
-    def get_cache_dir(self):
-        return self.cache_dir
-
-    def listdir_timeout(self):
-        return datetime.timedelta(days=10)
 
     def listdir(self, project, path='/', use_cache=True):
         """
@@ -93,21 +70,40 @@ class Provider(
                 "`project' for `kernel.org' provider must always be None"
                 )
 
-        if path in [
-                ]:
-            return [], {}
+        exclude_paths = self.simple_config.get('exclude_paths', [])
+        reject_files = self.simple_config.get('reject_files', [])
+        target_uri = self.simple_config.get('target_uri', None)
+        uri_obj = wayround_org.utils.uri.HttpURI.new_from_string(target_uri)
+        uri_obj_copy = uri_obj.copy()
+        uri_obj_copy.path = None
+        target_uri_with_root_path = str(uri_obj_copy)
+        target_uri_path = uri_obj.path
 
-        if path.endswith('.git'):
-            return [], {}
+        del uri_obj_copy
+
+        if uri_obj.scheme not in ['http', 'https']:
+            raise ValueError(
+                "Invalid URI scheme: not pupported: {}".format(uri_obj.scheme)
+                )
+
+        for i in exclude_paths:
+            if fnmatch.fnmatch(path, i):
+                return [], {}
 
         if use_cache:
             digest = hashlib.sha1()
-            digest.update(path.encode('utf-8'))
+            digest.update(
+                wayround_org.utils.path.join(
+                    uri_obj.path,
+                    path
+                    ).encode('utf-8')
+                )
             digest = digest.hexdigest().lower()
             dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
                 self.cache_dir,
-                '({})-(listdir)-({})'.format(
+                '({})-(for {})-(listdir)-({})'.format(
                     self.get_provider_name(),
+                    uri_obj.authority.host,
                     digest
                     ),
                 self.listdir_timeout(),
@@ -123,35 +119,30 @@ class Provider(
             ret = None, None
 
             html_walk = wayround_org.utils.htmlwalk.HTMLWalk(
-                'download.gnome.org'
+                uri_obj.authority.host,
+                scheme=uri_obj.scheme,
+                port=uri_obj.authority.port
                 )
 
-            path = wayround_org.utils.path.join('sources', path)
+            path = wayround_org.utils.path.join(uri_obj.path, path)
 
             folders, files = html_walk.listdir2(path)
 
             files_d = {}
             for i in files:
                 new_uri = '{}{}'.format(
-                    'https://download.gnome.org/',
-                    wayround_org.utils.path.join(
-                        path,
-                        i
-                        )
+                    target_uri_with_root_path,
+                    wayround_org.utils.path.join(path, i)
                     )
                 files_d[i] = new_uri
 
             files = files_d
 
+            for i in range(len(files) - 1, -1, -1):
+                for j in reject_files:
+                    if fnmatch.fnmatch(files[i], j):
+                        del files[i]
+
             ret = folders, files
 
         return ret
-
-    def tarballs(self, project, use_cache=True, use_tree_cache=True):
-        if self._inmemory_cache_for_tarballs is None:
-            self._inmemory_cache_for_tarballs = super().tarballs(
-                project,
-                use_cache=use_cache,
-                use_tree_cache=use_tree_cache
-                )
-        return self._inmemory_cache_for_tarballs

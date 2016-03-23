@@ -15,6 +15,9 @@ class StandardHttps:
                 raise ValueError("`project' param nust be None")
         return
 
+    def get_cache_dir(self):
+        return self.cache_dir
+
     def listdir_timeout(self):
         return datetime.timedelta(days=1)
 

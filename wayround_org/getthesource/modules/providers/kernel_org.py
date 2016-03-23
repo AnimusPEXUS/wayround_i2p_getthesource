@@ -94,12 +94,14 @@ class Provider(
 
         if path in [
                 '/linux/kernel/people',
-                '/linux/devel/gcc'
+                '/linux/devel/gcc',
+                '/scm/linux/kernel/git'
                 ]:
             return [], {}
 
-        if path.endswith('.git'):
-            return [], {}
+        for i in ['.git', '.git_old']:
+            if path.endswith(i):
+                return [], {}
 
         if use_cache:
             digest = hashlib.sha1()
