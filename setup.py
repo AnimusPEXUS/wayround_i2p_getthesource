@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='wayround_org_getthesource',
-    version='0.1',
+    version='0.1.1',
     description='modular tool for downloading lates N (by version numbering) tarballs from given site',
     author='Alexey Gorshkov',
     author_email='animus@wayround.org',
@@ -14,5 +14,17 @@ setup(
         ],
     classifiers=[
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)'
-        ]
+        ],
+    packages=[
+        'wayround_org.getthesource',
+        'wayround_org.getthesource.modules',
+        'wayround_org.getthesource.modules.downloaders',
+        'wayround_org.getthesource.modules.providers'
+        ],
+    entry_points={
+        'console_scripts': [
+           'wrogts = wayround_org.getthesource.main'
+            ]
+        }
     )
+
