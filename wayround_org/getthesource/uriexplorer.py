@@ -10,7 +10,7 @@ import wayround_org.utils.log
 
 class URIExplorer:
 
-    def __init__(self, cfg, simple_mode=False, simple_config=None):
+    def __init__(self, cfg, simple_config=None):
 
         log_dir = '~/.config/wrogts/logs'
 
@@ -42,7 +42,7 @@ class URIExplorer:
 
         self.providers = {}
 
-        self._load_providers(simple_mode=simple_mode)
+        self._load_providers(simple_mode=simple_config is not None)
 
         return
 

@@ -1,6 +1,8 @@
 
+import os.path
 import fnmatch
 import hashlib
+import regex
 
 import wayround_org.utils.path
 import wayround_org.utils.htmlwalk
@@ -25,6 +27,9 @@ class Provider(
 
         self.cache_dir = controller.cache_dir
         self.logger = controller.logger
+
+        self._inmemory_cache_for_tarballs = None
+
         self.simple_config = controller.simple_config
         return
 
@@ -71,8 +76,16 @@ class Provider(
                 )
 
         exclude_paths = self.simple_config.get('exclude_paths', [])
+        exclude_paths_re = self.simple_config.get('exclude_paths_re', [])
+        exclude_paths_bases = self.simple_config.get('exclude_paths_bases', [])
+        exclude_paths_bases_re = (
+            self.simple_config.get('exclude_paths_bases_re', [])
+            )
         reject_files = self.simple_config.get('reject_files', [])
+        reject_files_re = self.simple_config.get('reject_files_re', [])
+
         target_uri = self.simple_config.get('target_uri', None)
+
         uri_obj = wayround_org.utils.uri.HttpURI.new_from_string(target_uri)
         uri_obj_copy = uri_obj.copy()
         uri_obj_copy.path = None
@@ -88,6 +101,18 @@ class Provider(
 
         for i in exclude_paths:
             if fnmatch.fnmatch(path, i):
+                return [], {}
+
+        for i in exclude_paths_bases:
+            if fnmatch.fnmatch(os.path.basename(path), i):
+                return [], {}
+
+        for i in exclude_paths_re:
+            if regex.match(i, path):
+                return [], {}
+
+        for i in exclude_paths_bases_re:
+            if regex.match(i, os.path.basename(path)):
                 return [], {}
 
         if use_cache:
@@ -143,6 +168,21 @@ class Provider(
                     if fnmatch.fnmatch(files[i], j):
                         del files[i]
 
+            for i in range(len(files) - 1, -1, -1):
+                for j in reject_files_re:
+                    if regex.match(j, files[i]):
+                        del files[i]
+
             ret = folders, files
 
         return ret
+
+    # FIXME: such mesures shuld not be used
+    def tarballs(self, project, use_cache=True, use_tree_cache=True):
+        if self._inmemory_cache_for_tarballs is None:
+            self._inmemory_cache_for_tarballs = super().tarballs(
+                project,
+                use_cache=use_cache,
+                use_tree_cache=use_tree_cache
+                )
+        return self._inmemory_cache_for_tarballs

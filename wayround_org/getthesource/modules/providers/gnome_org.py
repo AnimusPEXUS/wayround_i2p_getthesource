@@ -147,6 +147,7 @@ class Provider(
 
         return ret
 
+    # FIXME: such mesures shuld not be used
     def tarballs(self, project, use_cache=True, use_tree_cache=True):
         if self._inmemory_cache_for_tarballs is None:
             self._inmemory_cache_for_tarballs = super().tarballs(

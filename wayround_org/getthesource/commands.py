@@ -4,9 +4,11 @@ import collections
 import yaml
 import pprint
 import logging
+import regex
 
 import wayround_org.utils.getopt
 import wayround_org.utils.text
+import wayround_org.utils.path
 
 import wayround_org.getthesource.uriexplorer
 import wayround_org.getthesource.mirrorer
@@ -270,6 +272,13 @@ def mirrorer_work_on_dir(command_name, opts, args, adds):
     return ret
 
 
+def value_split_by_sign(value, sign=','):
+    ret = value
+    if isinstance(ret, str):
+        ret = ret.split(sign)
+    return ret
+
+
 def simple_mirroring(command_name, opts, args, adds):
     """
     Do simple mirroring of HTTPS directory tree into output dir.
@@ -278,8 +287,37 @@ def simple_mirroring(command_name, opts, args, adds):
     dirs for files and downloads tarballs into separate (by basename) dirs.
 
     SYNOPSIS
-        simple URI WORKDIRNAME
+        simple URI [WORKDIRNAME]
+
+        if WORKDIRNAME is not passed, current dir is used
+
+    OPTIONS
+
+        -X=COMMA_SEPARATED_LIST
+            exclude paths
+
+        -XB=COMMA_SEPARATED_LIST
+            like -X, but works only on basenames of paths
+
+        -R=COMMA_SEPARATED_LIST
+            reject files
+
+        -XR=COMMA_SEPARATED_LIST
+            same as -X, but uses regex module
+
+        -XBR=COMMA_SEPARATED_LIST
+            same as -XB, but uses regex module
+
+        -RR=COMMA_SEPARATED_LIST
+            same as -R, but uses regex module
+
+        -TBW=COMMA_SEPARATED_LIST
+            white list for tarball basenames
+
     """
+
+    print("args: {}".format(args))
+    print("opts: {}".format(opts))
 
     cfg = load_config(CONFIG_PATH)
     ret = 0
@@ -288,23 +326,41 @@ def simple_mirroring(command_name, opts, args, adds):
         ret = 2
 
     if ret == 0:
-
-        if len(args) != 2:
-            logging.error("exactly 2 argsuments must be passed")
-            ret = 1
+        if len(args) == 0:
+            logging.error("URI - is necessary argument")
+            ret = 3
 
     if ret == 0:
 
-        uri = args[0]
-        working_directory = args[1]
+        if len(args) > 0:
+            uri = args[0]
 
-        exclude_paths = opts.get('-X', [])
-        if isinstance(exclude_paths, str):
-            exclude_paths = exclude_paths.split(',')
+    if ret == 0:
+        if len(args) == 2:
+            working_directory = args[1]
+        else:
+            working_directory = os.getcwd()
 
-        reject_files = opts.get('-R', [])
-        if isinstance(reject_files, str):
-            reject_files = reject_files.split(',')
+        working_directory = wayround_org.utils.path.abspath(working_directory)
+
+    if ret == 0:
+        if len(args) > 2:
+            logging.error("too many arguments")
+            ret = 4
+
+    if ret == 0:
+
+        exclude_paths = value_split_by_sign(opts.get('-X', []))
+        exclude_paths_bases = value_split_by_sign(opts.get('-XB', []))
+        reject_files = value_split_by_sign(opts.get('-R', []))
+
+        exclude_paths_re = value_split_by_sign(opts.get('-XR', []))
+        exclude_paths_bases_re = value_split_by_sign(opts.get('-XBR', []))
+        reject_files_re = value_split_by_sign(opts.get('-RR', []))
+
+        tarball_basenames_whitelist = value_split_by_sign(
+            opts.get('-TBW', None)
+            )
 
         if 'general' not in cfg:
             cfg['general'] = {}
@@ -321,8 +377,15 @@ def simple_mirroring(command_name, opts, args, adds):
 
         simple_config = {
             'exclude_paths': exclude_paths,
+            'exclude_paths_bases': exclude_paths_bases,
             'reject_files': reject_files,
-            'target_uri': uri
+
+            'exclude_paths_re': exclude_paths_re,
+            'exclude_paths_bases_re': exclude_paths_bases_re,
+            'reject_files_re': reject_files_re,
+
+            'target_uri': uri,
+            'tarball_basenames_whitelist': tarball_basenames_whitelist
             }
 
         mirrorer_cfg = [
@@ -338,14 +401,14 @@ def simple_mirroring(command_name, opts, args, adds):
 
         uriexplorer = wayround_org.getthesource.uriexplorer.URIExplorer(
             cfg,
-            simple_mode=True,
             simple_config=simple_config
             )
 
         mirrorer = wayround_org.getthesource.mirrorer.Mirrorer(
             cfg,
             working_directory,
-            uriexplorer
+            uriexplorer,
+            simple_config=simple_config
             )
 
         ret = mirrorer.work_on_dir(mirrorer_cfg)

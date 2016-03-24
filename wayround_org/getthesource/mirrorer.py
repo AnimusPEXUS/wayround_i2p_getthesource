@@ -18,7 +18,13 @@ import wayround_org.getthesource.uriexplorer
 
 class Mirrorer:
 
-    def __init__(self, cfg, working_path, uriexplorer):
+    def __init__(
+            self,
+            cfg,
+            working_path,
+            uriexplorer,
+            simple_config=None
+            ):
 
         working_path = wayround_org.utils.path.abspath(working_path)
 
@@ -37,6 +43,8 @@ class Mirrorer:
                 "`uriexplorer' must be inst of "
                 "wayround_org.getthesource.uriexplorer.URIExplorer"
                 )
+
+        self.simple_config = simple_config
 
         self.uriexplorer = uriexplorer
 
@@ -241,10 +249,29 @@ class Mirrorer:
                                 settings_options
                                 )
                 else:
+                    basenames = None
                     self.logger.info(
                         "    getting list of basenames and doing them all"
                         )
-                    for i in sorted(provider.basenames(None)):
+                    if self.simple_config is not None:
+                        if 'tarball_basenames_whitelist' in self.simple_config:
+                            tbw = (
+                                self.simple_config[
+                                    'tarball_basenames_whitelist'
+                                    ]
+                                )
+                            if isinstance(tbw, list):
+                                self.logger.info(
+                                    "        but whitelist is provided"
+                                    " - using it!"
+                                    )
+
+                            basenames = tbw
+
+                    if basenames is None:
+                        basenames = provider.basenames(None)
+
+                    for i in sorted(basenames):
                         self.work_on_dir_with_basename(
                             path,
                             provider_name,
@@ -398,13 +425,22 @@ class Mirrorer:
         if project is not None:
             project_path_part.append(project)
 
-        output_path = wayround_org.utils.path.join(
-            path,
-            'downloads',
-            provider,
-            project_path_part,
-            basename
-            )
+        if provider != 'std_simple':
+            output_path = wayround_org.utils.path.join(
+                path,
+                'downloads',
+                provider,
+                project_path_part,
+                basename
+                )
+        else:
+            output_path = wayround_org.utils.path.join(
+                path,
+                'downloads',
+                # provider,
+                project_path_part,
+                basename
+                )
 
         self.logger.info("  output dir going to be: {}".format(output_path))
 
@@ -554,11 +590,11 @@ class Mirrorer:
                         os.unlink(new_basename_full_cs)
 
                 if (actual_cs != saved_cs
-                    or (actual_cs == saved_cs is None)
-                    or actual_cs is None
-                    or saved_cs is None
-                    or (not os.path.isfile(new_basename_full))
-                    ):
+                        or (actual_cs == saved_cs is None)
+                        or actual_cs is None
+                        or saved_cs is None
+                        or (not os.path.isfile(new_basename_full))
+                        ):
                     if os.path.isfile(new_basename_full_cs):
                         os.path.unlink(new_basename_full_cs)
 
@@ -601,9 +637,14 @@ class Mirrorer:
                         if os.stat(jj).st_size == 0:
                             os.unlink(jj)
 
+                    download_uri = '{}{}'.format(i[1], j)
+                    self.logger.info(
+                        "    download uri: {}".format(download_uri)
+                        )
+
                     if not os.path.isfile(jj):
                         dd_res = downloader.download(
-                            '{}{}'.format(i[1], j),
+                            download_uri,
                             output_path,
                             new_basename_j,
                             stop_event=None,
@@ -626,24 +667,4 @@ class Mirrorer:
                 os.unlink(ij)
             '''
 
-        return
-
-
-class MirrorerSimple(Mirrorer):
-
-    def __init__(self, cfg, uriexplorer, uri, working_path):
-
-        self.standard_provider_module = importlib.import_module(
-            'wayround_org.getthesource.modules.droviders.standard'
-            )
-
-        uri_obj = wayround_org.utils.uri.HttpURI.new_from_string(uri)
-
-        self.standard_provider = standard_provider_module.Provider(
-            self,
-            domain=uri_obj.authority.host,
-            path=uri_obj.path,
-            scheme=uri_obj.scheme,
-            port=uri_obj.authority.port
-            )
         return
