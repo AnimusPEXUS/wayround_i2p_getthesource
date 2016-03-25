@@ -1,9 +1,6 @@
 
 import os.path
-import copy
-import logging
 import importlib
-import datetime
 
 import yaml
 
@@ -48,13 +45,13 @@ class Mirrorer:
 
         self.uriexplorer = uriexplorer
 
-        self.downloaders = {}
+        self.downloaders = []
 
-        self._load_downloaders()
+        self._load_downloaders_list()
 
         return
 
-    def _load_downloaders(self):
+    def _load_downloaders_list(self):
         """
         This method should be started only once - on object init
         """
@@ -63,7 +60,7 @@ class Mirrorer:
             'modules',
             'downloaders'
             )
-        downloaders = []
+        self.downloaders = []
         for i in sorted(os.listdir(downloader_dir)):
             if i.endswith('.py'):
                 j = wayround_org.utils.path.join(
@@ -71,22 +68,25 @@ class Mirrorer:
                     i
                     )
                 if os.path.isfile(j):
-                    downloaders.append(i[:-3])
+                    self.downloaders.append(i[:-3])
 
-        if '__init__' in downloaders:
-            downloaders.remove('__init__')
+        if '__init__' in self.downloaders:
+            self.downloaders.remove('__init__')
 
-        for i in downloaders:
+        return
+
+    def get_downloader(self, name):
+        ret = None
+        if name in self.downloaders:
             mod = importlib.import_module(
-                'wayround_org.getthesource.modules.downloaders.{}'.format(i)
+                'wayround_org.getthesource.modules.downloaders.{}'.format(name)
                 )
             p = mod.Downloader(self)
             if p.get_is_downloader_enabled():
-                self.downloaders[p.get_downloader_code_name()] = p
-            del mod
-            del p
+                ret = p
 
-        return
+        return ret
+
 
     def work_on_dir(self, m_cfg=None):
 
@@ -210,7 +210,7 @@ class Mirrorer:
                     )
                 continue
 
-            provider = self.uriexplorer.providers[provider_name]
+            provider = self.uriexplorer.get_provider(provider_name)
             provider_has_projects = provider.get_project_param_used()
             provider_project_names = None
             if provider_has_projects:
@@ -419,7 +419,7 @@ class Mirrorer:
 
         path = wayround_org.utils.path.abspath(path)
 
-        provired_obj = self.uriexplorer.providers[provider]
+        provired_obj = self.uriexplorer.get_provider(provider)
 
         project_path_part = []
         if project is not None:
@@ -555,7 +555,7 @@ class Mirrorer:
             # print("tarballs_to_download: {}".format(tarballs_to_download))
 
             # TODO: here must be something smarter, but I'm in horry
-            downloader = self.downloaders['wget']
+            downloader = self.get_downloader('wget')
             for i in tarballs_to_download:
                 new_basename = os.path.basename(i[0])
                 new_basename_full = wayround_org.utils.path.join(

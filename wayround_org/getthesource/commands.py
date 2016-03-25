@@ -12,6 +12,7 @@ import wayround_org.utils.path
 
 import wayround_org.getthesource.uriexplorer
 import wayround_org.getthesource.mirrorer
+import wayround_org.getthesource.git_tool
 
 
 CONFIG_PATH = '/etc/wrogts.conf.yaml'
@@ -27,6 +28,7 @@ def commands():
         #('find-tarball-uris', find_tarball_uris)
         ('run-mirroring', mirrorer_work_on_dir),
         ('simple', simple_mirroring),
+        ('mirror-github', mirror_github)
     ])
     return ret
 
@@ -412,5 +414,26 @@ def simple_mirroring(command_name, opts, args, adds):
             )
 
         ret = mirrorer.work_on_dir(mirrorer_cfg)
+
+    return ret
+
+
+def mirror_github(command_name, opts, args, adds):
+    ret = 0
+
+    working_dir = os.getcwd()
+    if len(args) == 1:
+        working_dir = args[0]
+
+    working_dir = wayround_org.utils.path.abspath(working_dir)
+    list_file_path = wayround_org.utils.path.join(
+        working_dir,
+        'download_list.yaml'
+        )
+
+    wayround_org.getthesource.git_tool.work_on_github_downloading_list(
+        working_dir,
+        list_file_path
+        )
 
     return ret

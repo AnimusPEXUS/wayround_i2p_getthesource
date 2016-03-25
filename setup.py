@@ -14,7 +14,8 @@ setup(
     url='https://github.com/AnimusPEXUS/wayround_org_getthesource',
     install_requires=[
         'wayround_org_utils',
-        'regex'
+        'regex',
+        'pyyaml'
         ],
     classifiers=[
         'License :: OSI Approved'
