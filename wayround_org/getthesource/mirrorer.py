@@ -596,7 +596,7 @@ class Mirrorer:
                         or (not os.path.isfile(new_basename_full))
                         ):
                     if os.path.isfile(new_basename_full_cs):
-                        os.path.unlink(new_basename_full_cs)
+                        os.unlink(new_basename_full_cs)
 
                     dd_res = downloader.download(
                         i[1],

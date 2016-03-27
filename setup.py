@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='wayround_org_getthesource',
-    version='0.1.3',
+    version='0.1.4',
     description=(
         "modular tool for downloading lates N"
         " (by version numbering) tarballs from given site"
