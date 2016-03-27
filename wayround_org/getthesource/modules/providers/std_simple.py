@@ -3,9 +3,11 @@ import os.path
 import fnmatch
 import hashlib
 import regex
+import ftplib
 
 import wayround_org.utils.path
 import wayround_org.utils.htmlwalk
+import wayround_org.utils.ftpwalk
 
 import wayround_org.getthesource.modules.providers.templates.std_https
 
@@ -31,6 +33,7 @@ class Provider(
         self._inmemory_cache_for_tarballs = None
 
         self.simple_config = controller.simple_config
+        self.ftp_client = None
         return
 
     def get_provider_name(self):
@@ -94,9 +97,9 @@ class Provider(
 
         del uri_obj_copy
 
-        if uri_obj.scheme not in ['http', 'https']:
+        if uri_obj.scheme not in ['http', 'https', 'ftp']:
             raise ValueError(
-                "Invalid URI scheme: not pupported: {}".format(uri_obj.scheme)
+                "Invalid URI scheme: not supported: {}".format(uri_obj.scheme)
                 )
 
         for i in exclude_paths:
@@ -143,41 +146,102 @@ class Provider(
 
             ret = None, None
 
-            html_walk = wayround_org.utils.htmlwalk.HTMLWalk(
-                uri_obj.authority.host,
-                scheme=uri_obj.scheme,
-                port=uri_obj.authority.port
-                )
+            walker_obj = None
+            walker_obj_listdir_method = None
 
-            path = wayround_org.utils.path.join(uri_obj.path, path)
+            if uri_obj.scheme in ['http', 'https']:
 
-            folders, files = html_walk.listdir2(path)
-
-            files_d = {}
-            for i in files:
-                new_uri = '{}{}'.format(
-                    target_uri_with_root_path,
-                    wayround_org.utils.path.join(path, i)
+                walker_obj = wayround_org.utils.htmlwalk.HTMLWalk(
+                    uri_obj.authority.host,
+                    scheme=uri_obj.scheme,
+                    port=uri_obj.authority.port
                     )
-                files_d[i] = new_uri
+                walker_obj_listdir_method = walker_obj.listdir2
 
-            files = files_d
+            elif uri_obj.scheme in ['ftp']:
+                if self.ftp_client is None:
+                    self.ftp_prefix_uri = 'ftp://{}'.format(
+                        uri_obj.authority.host
+                        )
+                    self.ftp_client = ftplib.FTP(
+                        uri_obj.authority.host,
+                        user='anonymous'
+                        )
+                    self.ftp_walk = wayround_org.utils.ftpwalk.FTPWalk(
+                        self.ftp_client
+                        )
+                walker_obj = self.ftp_client
+                walker_obj_listdir_method = self.ftp_listdir
 
-            for i in range(len(files) - 1, -1, -1):
+            else:
+                raise Exception("programming error")
+
+            path = wayround_org.utils.path.join('/', uri_obj.path, path)
+
+            #print("getting list for: {}".format(path))
+            folders, files = walker_obj_listdir_method(path)
+            #print("    result: {}".format((folders, files)))
+
+            if folders is not None and files is not None:
+
+                files_d = {}
+                for i in files:
+                    new_uri = '{}{}'.format(
+                        target_uri_with_root_path,
+                        wayround_org.utils.path.join(path, i)
+                        )
+                    files_d[i] = new_uri
+
+                files = files_d
+
+                ret = folders, files
+
+        if ret[0] is not None:
+
+            files = ret[1]
+
+            for i in list(files.keys()):
                 for j in reject_files:
-                    if fnmatch.fnmatch(files[i], j):
-                        del files[i]
+                    if fnmatch.fnmatch(i, j):
+                        if i in files:
+                            del files[i]
 
-            for i in range(len(files) - 1, -1, -1):
+            for i in list(files.keys()):
                 for j in reject_files_re:
-                    if regex.match(j, files[i]):
-                        del files[i]
+                    if regex.match(j, i):
+                        if i in files:
+                            del files[i]
 
-            ret = folders, files
+            ret = ret[0], files
 
         return ret
 
-    # FIXME: such mesures shuld not be used 
+    def ftp_listdir(self, path):
+        ret = None, None
+
+        lst = self.ftp_walk.listdir(path)
+
+        if isinstance(lst, list):
+
+            dirs = []
+            files = {}
+
+            for i in lst:
+
+                if i in ['..', '.', '/']:
+                    continue
+
+                ij = wayround_org.utils.path.join(path, i)
+
+                if not self.ftp_walk.is_dir(ij):
+                    files[i] = '{}{}'.format(self.ftp_prefix_uri, ij)
+                else:
+                    dirs.append(i)
+
+            ret = dirs, files
+        return ret
+
+    # FIXME: such mesures shuld not be used
     #       (fixed with a46ec590daf999573f9f6e9f598028235d3bb883)
     def tarballs(self, project, use_cache=True, use_tree_cache=True):
         if self._inmemory_cache_for_tarballs is None:
