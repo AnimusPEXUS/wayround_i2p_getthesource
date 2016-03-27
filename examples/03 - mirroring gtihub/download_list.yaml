@@ -1,0 +1,128 @@
+
+OpenImageIO:
+  oiio:
+    make-tarballs:
+    - {basename: openimageio, needed_tag_re_prefix_is: Release}
+
+SELinuxProject:
+  selinux:
+    make-tarballs:
+    - {basename: checkpolicy, needed_tag_re_prefix_is: checkpolicy}
+    - {basename: libselinux, needed_tag_re_prefix_is: libselinux}
+    - {basename: libsemanage, needed_tag_re_prefix_is: libsemanage}
+    - {basename: libsepol, needed_tag_re_prefix_is: libsepol}
+    - {basename: policycoreutils, needed_tag_re_prefix_is: policycoreutils}
+    - {basename: sepolgen, needed_tag_re_prefix_is: sepolgen}
+
+anholt:
+  libepoxy:
+    make-tarballs: [libepoxy]
+
+google:
+  googletest:
+    make-tarballs:
+    - {basename: googletest, needed_tag_re_prefix_is: release}
+  protobuf:
+    make-tarballs: [protobuf]
+
+hamcrest:
+  JavaHamcrest:
+    make-tarballs:
+    - {basename: hamcrest-java, needed_tag_re_prefix_is: hamcrest-java}
+
+ibus:
+  ibus:
+    make-tarballs:
+    - {basename: ibus, needed_tag_re_prefix_is: ''}
+  ibus-anthy:
+    make-tarballs:
+    - {basename: ibus-anthy, needed_tag_re_prefix_is: ''}
+  ibus-cros:
+    make-tarballs:
+    - {basename: ibus-cros, needed_tag_re_prefix_is: ''}
+  ibus-m17n:
+    make-tarballs:
+    - {basename: ibus-m17n, needed_tag_re_prefix_is: ''}
+  ibus-pinyin:
+    make-tarballs:
+    - {basename: ibus-pinyin, needed_tag_re_prefix_is: ''}
+  ibus-qt:
+    make-tarballs:
+    - {basename: ibus-qt, needed_tag_re_prefix_is: ''}
+  ibus-xkb:
+    make-tarballs:
+    - {basename: ibus-xkb, needed_tag_re_prefix_is: ''}
+
+libgit2:
+  libgit2:
+    make-tarballs: [libgit2]
+
+lloyd:
+  yajl:
+    make-tarballs:
+    - {basename: yajl, needed_tag_re_prefix_is: ''}
+
+sqlcipher:
+  sqlcipher:
+    make-tarballs: [sqlcipher]
+
+systemd:
+  systemd:
+    make-tarballs: [systemd]
+
+ukoethe:
+  vigra:
+    make-tarballs:
+    - {basename: vigra, needed_tag_re_prefix_is: Version}
+
+vancegroup:
+  freealut:
+    make-tarballs:
+    - {basename: freealut, needed_tag_re_prefix_is: 'freealut'}
+
+waf-project:
+  waf:
+    make-tarballs:
+    - {basename: waf, needed_tag_re_prefix_is: 'waf'}
+
+apple:
+  cups: 
+    make-tarballs:
+    - {basename: cups, needed_tag_re_prefix_is: 'release'}
+
+
+
+
+
+# Anoncoin:
+#   anoncoin:
+#     make-tarballs:
+#     - {basename: anoncoin}
+# Guake:
+#   guake:
+#     make-tarballs: [guake]
+
+
+# RetroShare:
+#   RetroShare:
+#     make-tarballs: [RetroShare]
+
+
+# bitcoin:
+#   bitcoin:
+#     make-tarballs: [bitcoin]
+# geometer:
+#   FBReader:
+#     make-tarballs: [FBReader]
+# inspircd:
+#   inspircd:
+#     make-tarballs: [inspircd]
+# kripken:
+#   emscripten:
+#     make-tarballs: [emscripten]
+# maxmind:
+#   geoip-api-c:
+#     make-tarballs: [GeoIP]
+# unbit:
+#   uwsgi:
+#     make-tarballs: [uwsgi]
