@@ -188,7 +188,7 @@ class Provider(
                 for i in files:
                     new_uri = '{}{}'.format(
                         target_uri_with_root_path,
-                        wayround_org.utils.path.join(path, i)
+                        wayround_org.utils.path.join(path, i).lstrip('/')
                         )
                     files_d[i] = new_uri
 
