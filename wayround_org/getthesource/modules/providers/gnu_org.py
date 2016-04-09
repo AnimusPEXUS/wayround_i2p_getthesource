@@ -184,6 +184,8 @@ class Provider(
             path = wayround_org.utils.path.join('gnu', project, path)
 
             folders, files = html_walk.listdir2(path)
+            if folders is None or files is None:
+                folders, files = [], {}
 
             files_d = {}
             for i in files:
@@ -191,7 +193,7 @@ class Provider(
                     self.get_provider_main_downloads_uri(),
                     wayround_org.utils.path.join(
                         project,
-                        path,
+                        # path,
                         i
                         )
                     )

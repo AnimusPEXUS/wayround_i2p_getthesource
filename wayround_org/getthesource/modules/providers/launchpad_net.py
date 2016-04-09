@@ -44,13 +44,13 @@ class Provider(
         return
 
     def get_provider_name(self):
-        return 'linux-pam.org'
+        return 'LAUNCHPAD.NET'
 
     def get_provider_code_name(self):
-        return 'linux_pam'
+        return 'launchpad.net'
 
     def get_protocol_description(self):
-        return 'http'
+        return 'https'
 
     def get_is_provider_enabled(self):
         # NOTE: here can be provided warning text printing in case is
@@ -60,19 +60,25 @@ class Provider(
         return True
 
     def get_provider_main_site_uri(self):
-        return 'http://www.linux-pam.org/'
+        return 'https://launchpad.net/'
 
     def get_provider_main_downloads_uri(self):
-        return 'http://www.linux-pam.org/library/'
+        return 'https://launchpad.net/'
 
     def get_project_param_used(self):
-        return False
+        return True
 
     def get_cs_method_name(self):
         return 'sha1'
 
     def get_cache_dir(self):
         return self.cache_dir
+
+    def get_project_names(self, use_cache=True):
+
+        ret = ['apparmor']
+
+        return ret
 
     def listdir(self, project, path='/', use_cache=True):
         """
@@ -87,61 +93,52 @@ class Provider(
             dirs == files == None - means error
         """
 
-        if project is not None:
-            raise ValueError(
-                "`project' for `kernel.org' provider must always be None"
-                )
-
-        if path in [
-                ]:
-            return [], {}
-
-        if path.endswith('.git'):
-            return [], {}
-
         if use_cache:
             digest = hashlib.sha1()
             digest.update(path.encode('utf-8'))
             digest = digest.hexdigest().lower()
             dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
                 self.cache_dir,
-                '({})-(listdir)-({})'.format(
+                '({})-(launchpad.net)-(listdir)-({})-({})'.format(
                     self.get_provider_name(),
+                    project,
                     digest
                     ),
                 self.listdir_timeout(),
                 'sha1',
                 self.listdir,
-                freshdata_callback_args=(project, ),
+                freshdata_callback_args=(project,),
                 freshdata_callback_kwargs=dict(path=path, use_cache=False)
                 )
             ret = dc.get_data_cache()
         else:
-            self.logger.info("getting listdir at: {}".format(path))
 
             ret = None, None
 
-            html_walk = wayround_org.utils.htmlwalk.HTMLWalk(
-                'www.linux-pam.org',
-                scheme='http'
-                )
-
-            path = wayround_org.utils.path.join('library', path)
-
-            folders, files = html_walk.listdir2(path)
-
-            files_d = {}
-            for i in files:
-                new_uri = '{}{}'.format(
-                    'http://www.linux-pam.org/',
-                    wayround_org.utils.path.join(
-                        path,
-                        i
+            with urllib.request.urlopen(
+                    'https://launchpad.net/{project}/+download'.format(
+                        project=project
                         )
-                    )
-                files_d[i] = new_uri
+                    ) as f:
+                download_page_txt = f.read()
 
-            files = files_d
+            doc = lxml.html.document_fromstring(download_page_txt)
+
+            folders = []
+            files = {}
+
+            hrefs = {}
+            for i in page.findall('.//a'):
+                hrefs.add(urllib.request.unquote(i.get('href', '')))
+
+            hrefs -= set([''])
+
+            for i in hrefs:
+                if fnmatch.fnmatch(
+                        i, 'https://launchpad.net/{project}/*.tar*'
+                        ):
+
+                    files[os.path.basename(i)] = i
 
             ret = folders, files
 

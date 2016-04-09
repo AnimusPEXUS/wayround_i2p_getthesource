@@ -219,28 +219,96 @@ def work_on_github_downloading_list(
 
             targets_i_j = targets[i][j]
 
-            make_tarballs_instructions = targets_i_j.get('make-tarballs', [])
-
-            if isinstance(make_tarballs_instructions, list):
-                for k in make_tarballs_instructions:
-                    if isinstance(k, dict):
-                        make_tarballs(
-                            git_dir,
-                            tarballs_dir,
-                            **k
-                            )
-                    elif isinstance(k, str):
-                        make_tarballs(
-                            git_dir,
-                            tarballs_dir,
-                            basename=k
-                            )
-                    else:
-                        raise TypeError(
-                            "invalid type of download descr at {}:{}".format(
-                                i,
-                                j
-                                )
-                            )
+            work_on_instructions(
+                git_dir,
+                tarballs_dir,
+                targets_i_j,
+                "{}:{}".format(i, j)
+                )
 
     return
+
+
+def work_on_git_downloading_list(
+        work_dir,
+        list_file_path,
+        no_check_certificate=False
+        ):
+    list_file_path = wayround_org.utils.path.abspath(list_file_path)
+    work_dir = wayround_org.utils.path.abspath(work_dir)
+
+    with open(list_file_path) as f:
+        targets = yaml.load(f.read())
+
+    for i in targets:
+
+        git_dir = wayround_org.utils.path.join(
+            work_dir,
+            i[1],
+            'git'
+            )
+
+        tarballs_dir = wayround_org.utils.path.join(
+            work_dir,
+            i[1],
+            'tarballs'
+            )
+
+        clone_and_update(
+            i[0],
+            git_dir,
+            no_check_certificate=no_check_certificate
+            )
+
+        targets_i_2 = i[2]
+
+        work_on_instructions(
+            git_dir,
+            tarballs_dir,
+            targets_i_2,
+            repr(i)
+            )
+
+    return
+
+
+def work_on_instructions(
+        git_dir,
+        tarballs_dir,
+        target_download_instructions,
+        path_txt
+        ):
+    """
+    ret: 0 - no errors, not 0 - was errors
+    """
+
+    ret = 0
+
+    errors = False
+
+    make_tarballs_instructions = target_download_instructions.get(
+        'make-tarballs', []
+        )
+
+    if isinstance(make_tarballs_instructions, list):
+        for i in make_tarballs_instructions:
+            if isinstance(k, dict):
+                make_tarballs(
+                    git_dir,
+                    tarballs_dir,
+                    **i
+                    )
+            elif isinstance(i, str):
+                make_tarballs(
+                    git_dir,
+                    tarballs_dir,
+                    basename=i
+                    )
+            else:
+                raise TypeError(
+                    "invalid type of download descr at {}".format(path_txt)
+                    )
+    if errors:
+        ret = 1
+
+    return ret
