@@ -87,7 +87,6 @@ class Mirrorer:
 
         return ret
 
-
     def work_on_dir(self, m_cfg=None):
 
         ret = 0
@@ -160,6 +159,206 @@ class Mirrorer:
 
         return ret
 
+    def work_on_dir_with_settings_none(
+            self,
+            path,
+            provider_name,
+            provider_obj,
+            provider_has_projects,
+            provider_project_names,
+            settings_options
+            ):
+        self.logger.info("provider projects requested is None, so")
+
+        if provider_has_projects:
+            self.logger.info(
+                "    getting list of names supplied by provider"
+                " and doing all basenames in them"
+                )
+            for i in provider_project_names:
+                basenames = provider_obj.basenames(i)
+                for j in basenames:
+                    self.logger.info(
+                        "        project: {} ({} of {})"
+                        " basename: {} ({} of {})".format(
+                            i,
+                            provider_project_names.index(i) + 1,
+                            len(provider_project_names),
+                            j,
+                            basenames.index(j) + 1,
+                            len(basenames)
+                            )
+                        )
+                    self.work_on_dir_with_basename(
+                        path,
+                        provider_name,
+                        i,
+                        j,
+                        settings_options
+                        )
+        else:
+            basenames = None
+            self.logger.info(
+                "    getting list of basenames and doing them all"
+                )
+            if self.simple_config is not None:
+                if 'tarball_basenames_whitelist' in self.simple_config:
+                    tbw = (
+                        self.simple_config[
+                            'tarball_basenames_whitelist'
+                            ]
+                        )
+                    if isinstance(tbw, list):
+                        self.logger.info(
+                            "        but whitelist is provided"
+                            " - using it!"
+                            )
+
+                    basenames = tbw
+
+            if basenames is None:
+                basenames = provider_obj.basenames(None)
+
+            for i in sorted(basenames):
+                self.work_on_dir_with_basename(
+                    path,
+                    provider_name,
+                    None,
+                    i,
+                    settings_options
+                    )
+        return
+
+    def work_on_dir_with_settings_dict(
+            self,
+            path,
+            provider_name,
+            provider_obj,
+            provider_has_projects,
+            provider_project_names,
+            provider_target_setting,
+            settings_options
+            ):
+        self.logger.info("working with dicted description")
+
+        provider_target_setting_keys = sorted(
+            list(provider_target_setting.keys())
+            )
+
+        self.logger.info(
+            " going to process {} setting keys".format(
+                len(provider_target_setting_keys)
+                )
+            )
+
+        for i in provider_target_setting_keys:
+            provider_target_setting_i_keys = sorted(
+                list(provider_target_setting[i].keys())
+                )
+            self.logger.info(
+                "  going to process {} subsetting keys".format(
+                    len(provider_target_setting_i_keys)
+                    )
+                )
+            for j in provider_target_setting_i_keys:
+
+                if i not in provider_project_names:
+                    self.logger.error(
+                        "provider `{}' has no project `{}'".format(
+                            provider_name,
+                            i
+                            )
+                        )
+                    continue
+
+                provider_project_basenames = provider_obj.basenames(j)
+
+                basenames = provider_target_setting[i][j]
+                if basenames is None:
+                    basenames = provider_project_basenames
+
+                for k in basenames:
+
+                    if k not in provider_project_basenames:
+                        self.logger.error(
+                            "provider `{}' project `'{}"
+                            " has no basename `{}'".format(
+                                provider_name,
+                                j,
+                                k,
+                                )
+                            )
+                        continue
+
+                    self.logger.info(
+                        "    project: {} ({} of {})"
+                        " basename: {} ({} of {})".format(
+                            i,
+                            provider_target_setting_keys.index(i) + 1,
+                            len(provider_target_setting_keys),
+                            j,
+                            provider_target_setting_i_keys.index(
+                                j) + 1,
+                            len(provider_target_setting_i_keys)
+                            )
+                        )
+
+                    self.work_on_dir_with_basename(
+                        path,
+                        provider_name,
+                        i,
+                        j,
+                        settings_options
+                        )
+        return
+
+    def work_on_dir_with_settings_list(
+            self,
+            path,
+            provider_name,
+            provider_obj,
+            provider_project_names,
+            provider_target_setting,
+            settings_options
+            ):
+        self.logger.info(
+            "provider projects requested is list so"
+            " assuming no project division"
+            )
+
+        for i in provider_target_setting:
+            if i not in provider_project_names:
+                self.logger.error(
+                    "provider `{}' has no project `{}'".format(
+                        provider_name,
+                        i
+                        )
+                    )
+                continue
+
+            basenames = provider_obj.basenames(i)
+
+            for j in basenames:
+                self.logger.info(
+                    "    project: {} ({} of {})"
+                    " basename: {} ({} of {})".format(
+                        i,
+                        provider_target_setting.index(i) + 1,
+                        len(provider_target_setting),
+                        j,
+                        basenames.index(j) + 1,
+                        len(basenames)
+                        )
+                    )
+                self.work_on_dir_with_basename(
+                    path,
+                    provider_name,
+                    i,
+                    j,
+                    settings_options
+                    )
+        return
+
     def work_on_dir_with_settings(self, path, settings):
         """
         settings['targets'] structure:
@@ -210,83 +409,38 @@ class Mirrorer:
                     )
                 continue
 
+            self.logger.info("loading provider: {}".format(provider_name))
             provider = self.uriexplorer.get_provider(provider_name)
+
             provider_has_projects = provider.get_project_param_used()
+            self.logger.info(
+                "provider is project devided: {}".format(provider_has_projects)
+                )
+
             provider_project_names = None
             if provider_has_projects:
                 provider_project_names = provider.get_project_names()
 
+            if isinstance(provider_has_projects, list):
+                self.logger.info(
+                    "provider supplies: {} project names".format(
+                        len(provider_has_projects)
+                        )
+                    )
+
             provider_target_setting = settings_targets[provider_name]
 
             if provider_target_setting is None:
-
-                self.logger.info("provider projects requested is None, so")
-
-                if provider_has_projects:
-                    self.logger.info(
-                        "    getting list of names supplied by provider"
-                        " and doing all basenames in them"
-                        )
-                    for i in provider_project_names:
-                        basenames = provider.basenames(i)
-                        for j in basenames:
-                            self.logger.info(
-                                "        project: {} ({} of {})"
-                                " basename: {} ({} of {})".format(
-                                    i,
-                                    provider_project_names.index(i) + 1,
-                                    len(provider_project_names),
-                                    j,
-                                    basenames.index(j) + 1,
-                                    len(basenames)
-                                    )
-                                )
-                            self.work_on_dir_with_basename(
-                                path,
-                                provider_name,
-                                i,
-                                j,
-                                settings_options
-                                )
-                else:
-                    basenames = None
-                    self.logger.info(
-                        "    getting list of basenames and doing them all"
-                        )
-                    if self.simple_config is not None:
-                        if 'tarball_basenames_whitelist' in self.simple_config:
-                            tbw = (
-                                self.simple_config[
-                                    'tarball_basenames_whitelist'
-                                    ]
-                                )
-                            if isinstance(tbw, list):
-                                self.logger.info(
-                                    "        but whitelist is provided"
-                                    " - using it!"
-                                    )
-
-                            basenames = tbw
-
-                    if basenames is None:
-                        basenames = provider.basenames(None)
-
-                    for i in sorted(basenames):
-                        self.work_on_dir_with_basename(
-                            path,
-                            provider_name,
-                            None,
-                            i,
-                            settings_options
-                            )
-
-            elif isinstance(provider_target_setting, list):
-
-                self.logger.info(
-                    "provider projects requested is list so"
-                    " assuming no project division"
+                self.work_on_dir_with_settings_none(
+                    path,
+                    provider_name,
+                    provider,
+                    provider_has_projects,
+                    provider_project_names,
+                    settings_options
                     )
 
+            elif isinstance(provider_target_setting, list):
                 if not provider_has_projects:
                     self.logger.error(
                         "setting for `{}' excludes projects subdivision, but "
@@ -294,105 +448,32 @@ class Mirrorer:
                         "".format(provider_name)
                         )
                     continue
+                self.work_on_dir_with_settings_list(
+                    path,
+                    provider_name,
+                    provider,
+                    provider_project_names,
+                    provider_target_setting,
+                    settings_options
+                    )
 
-                for i in provider_target_setting:
-                    if i not in provider_project_names:
-                        self.logger.error(
-                            "provider `{}' has no project `{}'".format(
-                                provider_name,
-                                i
-                                )
-                            )
-                        continue
-
-                    basenames = provider.basenames(i)
-
-                    for j in basenames:
-                        self.logger.info(
-                            "    project: {} ({} of {})"
-                            " basename: {} ({} of {})".format(
-                                i,
-                                provider_target_setting.index(i) + 1,
-                                len(provider_target_setting),
-                                j,
-                                basenames.index(j) + 1,
-                                len(basenames)
-                                )
-                            )
-                        self.work_on_dir_with_basename(
-                            path,
-                            provider_name,
-                            i,
-                            j,
-                            settings_options
-                            )
             elif isinstance(provider_target_setting, dict):
-
                 if not provider_has_projects:
                     self.logger.error(
                         "setting for `{}' means projects, but this provider"
                         " isn't subdivided onto projects".format(provider_name)
                         )
                     continue
-
-                provider_target_setting_keys = sorted(
-                    list(provider_target_setting.keys())
+                self.work_on_dir_with_settings_dict(
+                    path,
+                    provider_name,
+                    provider,
+                    provider_has_projects,
+                    provider_project_names,
+                    provider_target_setting,
+                    settings_options
                     )
 
-                for i in provider_target_setting_keys:
-                    provider_target_setting_i_keys = sorted(
-                        list(provider_target_setting[i].keys())
-                        )
-                    for j in provider_target_setting_i_keys:
-
-                        if i not in provider_project_names:
-                            self.logger.error(
-                                "provider `{}' has no project `{}'".format(
-                                    provider_name,
-                                    i
-                                    )
-                                )
-                            continue
-
-                        provider_project_basenames = provider.basenames(j)
-
-                        basenames = provider_target_setting[i][j]
-                        if basenames is None:
-                            basenames = provider_project_basenames
-
-                        for k in basenames:
-
-                            if k not in provider_project_basenames:
-                                self.logger.error(
-                                    "provider `{}' project `'{}"
-                                    " has no basename `{}'".format(
-                                        provider_name,
-                                        j,
-                                        k,
-                                        )
-                                    )
-                                continue
-
-                            self.logger.info(
-                                "    project: {} ({} of {})"
-                                " basename: {} ({} of {})".format(
-                                    i,
-                                    provider_target_setting_keys.index(i) + 1,
-                                    len(provider_target_setting_keys),
-                                    j,
-                                    provider_target_setting_i_keys.index(
-                                        j) + 1,
-                                    len(provider_target_setting_i_keys)
-                                    )
-                                )
-
-                            self.work_on_dir_with_basename(
-                                path,
-                                provider_name,
-                                i,
-                                j,
-                                settings_options
-                                )
             else:
                 self.logger.error(
                     "invalid type of target description"
@@ -590,11 +671,11 @@ class Mirrorer:
                         os.unlink(new_basename_full_cs)
 
                 if (actual_cs != saved_cs
-                        or (actual_cs == saved_cs is None)
-                        or actual_cs is None
-                        or saved_cs is None
-                        or (not os.path.isfile(new_basename_full))
-                        ):
+                    or (actual_cs == saved_cs is None)
+                    or actual_cs is None
+                    or saved_cs is None
+                    or (not os.path.isfile(new_basename_full))
+                    ):
                     if os.path.isfile(new_basename_full_cs):
                         os.unlink(new_basename_full_cs)
 
