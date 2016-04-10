@@ -9,8 +9,28 @@ import wayround_org.utils.tarball
 import wayround_org.utils.version
 import wayround_org.utils.checksum
 import wayround_org.utils.uri
+import wayround_org.utils.list
 
 import wayround_org.getthesource.uriexplorer
+
+
+def get_default_mirroring_cfg():
+    ret = {
+        'preferred_tarball_compressors': (
+            wayround_org.utils.tarball.
+            ACCEPTABLE_SOURCE_NAME_EXTENSIONS
+            ),
+        'only_latests': 3,
+        'ignore_invalid_connection_security': False,
+
+        # NOTE: using and enabling this may be unsafe
+        'delete_old_tarballs': False,
+
+        'downloader_obfuscation_required': False,
+        'redownload_prevention_checksum': 'sha512',
+        # 'separate_dirs_by_bases': True
+        }
+    return ret
 
 
 class Mirrorer:
@@ -87,401 +107,132 @@ class Mirrorer:
 
         return ret
 
-    def work_on_dir(self, m_cfg=None):
-
+    def work_on_dir(self):  # , m_cfg=None
         ret = 0
 
         path = self.working_path
 
-        self.logger.info(
-            "Got task to perform mirroring in dir: {}".format(path)
-            )
-
-        if m_cfg is None:
-
-            m_cfg_path = wayround_org.utils.path.join(
-                path,
-                'wrogts_mirrorer.conf.yaml'
-                )
-
-            self.logger.info("loading config: {}".format(m_cfg_path))
-
-            with open(m_cfg_path) as f:
-                m_cfg = yaml.load(f.read())
-
-        if not isinstance(m_cfg, list):
-            self.logger.error(
-                "invalid structure of {}".format(m_cfg_path)
-                )
-            ret = 1
-
-        if ret == 0:
-            self.logger.info(
-                "mirroring config contains {} description(s)".format(
-                    len(m_cfg)
-                    )
-                )
-            for i in m_cfg:
-                self.logger.info('=' * 20)
-                self.logger.info(
-                    "processing description #{}".format(m_cfg.index(i))
-                    )
-                self.logger.info('-' * 20)
-                options = {
-                    'preferred_tarball_compressors': (
-                        wayround_org.utils.tarball.
-                        ACCEPTABLE_SOURCE_NAME_EXTENSIONS
-                        ),
-                    'only_latests': 3,
-                    'ignore_invalid_connection_security': False,
-
-                    # NOTE: using and enabling this may be unsafe
-                    'delete_old_tarballs': False,
-
-                    'downloader_obfuscation_required': False,
-                    'redownload_prevention_checksum': 'sha512'
-                    }
-
-                if 'options' in i:
-                    for j in options.keys():
-                        if j in i['options']:
-                            options[j] = i['options'].get(j, None)
-
-                targets = i.get('targets', {})
-
-                self.work_on_dir_with_settings(
+        if self.simple_config is not None:
+            provider_name = 'std_simple'
+            project_names = None
+            mirroring_options = get_default_mirroring_cfg()
+            if self.perform_mirroring(
                     path,
-                    {
-                        'options': options,
-                        'targets': targets
-                        }
+                    provider_name,
+                    project_names,
+                    mirroring_options
+                    ) != 0:
+                ret = 2
+        else:
+
+            self.logger.info(
+                "Got task to perform mirroring in dir: {}".format(path)
+                )
+
+            if m_cfg is None:
+
+                m_cfg_path = wayround_org.utils.path.join(
+                    path,
+                    'wrogts_mirrorer.conf.yaml'
                     )
 
+                self.logger.info("loading config: {}".format(m_cfg_path))
+
+                with open(m_cfg_path) as f:
+                    m_cfg = yaml.load(f.read())
+
+            if not isinstance(m_cfg, list):
+                self.logger.error(
+                    "invalid structure of {}".format(m_cfg_path)
+                    )
+                ret = 1
+
+            if ret == 0:
+                for i in m_cfg:
+                    if not isinstance(i, dict):
+                        self.logger.error(
+                            "config error: all 0 level entries must be dicts"
+                            )
+                        ret = 1
+                        break
+
+            if ret == 0:
+
+                for i in m_cfg:
+
+                    provider_name = i.get('provider_name', None)
+
+                    project_names = i.get('project_names', None)
+
+                    mirroring_options = get_default_mirroring_cfg()
+
+                    _t = i.get('mirroring_opt', None)
+                    if isinstance(_t, dict):
+                        mirroring_options.update(_t)
+
+                    if self.perform_mirroring(
+                            path,
+                            provider_name,
+                            project_names,
+                            mirroring_options
+                            ) != 0:
+                        ret = 2
         return ret
 
-    def work_on_dir_with_settings_none(
+    def perform_mirroring(
             self,
             path,
             provider_name,
-            provider_obj,
-            provider_has_projects,
-            provider_project_names,
-            settings_options
+            project_names,
+            mirroring_options
             ):
-        self.logger.info("provider projects requested is None, so")
-
-        if provider_has_projects:
-            self.logger.info(
-                "    getting list of names supplied by provider"
-                " and doing all basenames in them"
-                )
-            for i in provider_project_names:
-                basenames = provider_obj.basenames(i)
-                for j in basenames:
-                    self.logger.info(
-                        "        project: {} ({} of {})"
-                        " basename: {} ({} of {})".format(
-                            i,
-                            provider_project_names.index(i) + 1,
-                            len(provider_project_names),
-                            j,
-                            basenames.index(j) + 1,
-                            len(basenames)
-                            )
-                        )
-                    self.work_on_dir_with_basename(
-                        path,
-                        provider_name,
-                        i,
-                        j,
-                        settings_options
-                        )
-        else:
-            basenames = None
-            self.logger.info(
-                "    getting list of basenames and doing them all"
-                )
-            if self.simple_config is not None:
-                if 'tarball_basenames_whitelist' in self.simple_config:
-                    tbw = (
-                        self.simple_config[
-                            'tarball_basenames_whitelist'
-                            ]
-                        )
-                    if isinstance(tbw, list):
-                        self.logger.info(
-                            "        but whitelist is provided"
-                            " - using it!"
-                            )
-
-                    basenames = tbw
-
-            if basenames is None:
-                basenames = provider_obj.basenames(None)
-
-            for i in sorted(basenames):
-                self.work_on_dir_with_basename(
-                    path,
-                    provider_name,
-                    None,
-                    i,
-                    settings_options
-                    )
-        return
-
-    def work_on_dir_with_settings_dict(
-            self,
-            path,
-            provider_name,
-            provider_obj,
-            provider_has_projects,
-            provider_project_names,
-            provider_target_setting,
-            settings_options
-            ):
-        self.logger.info("working with dicted description")
-
-        provider_target_setting_keys = sorted(
-            list(provider_target_setting.keys())
-            )
-
-        self.logger.info(
-            " going to process {} setting keys".format(
-                len(provider_target_setting_keys)
-                )
-            )
-
-        for i in provider_target_setting_keys:
-            provider_target_setting_i_keys = sorted(
-                list(provider_target_setting[i].keys())
-                )
-            self.logger.info(
-                "  going to process {} subsetting keys".format(
-                    len(provider_target_setting_i_keys)
-                    )
-                )
-            for j in provider_target_setting_i_keys:
-
-                if i not in provider_project_names:
-                    self.logger.error(
-                        "provider `{}' has no project `{}'".format(
-                            provider_name,
-                            i
-                            )
-                        )
-                    continue
-
-                provider_project_basenames = provider_obj.basenames(j)
-
-                basenames = provider_target_setting[i][j]
-                if basenames is None:
-                    basenames = provider_project_basenames
-
-                for k in basenames:
-
-                    if k not in provider_project_basenames:
-                        self.logger.error(
-                            "provider `{}' project `'{}"
-                            " has no basename `{}'".format(
-                                provider_name,
-                                j,
-                                k,
-                                )
-                            )
-                        continue
-
-                    self.logger.info(
-                        "    project: {} ({} of {})"
-                        " basename: {} ({} of {})".format(
-                            i,
-                            provider_target_setting_keys.index(i) + 1,
-                            len(provider_target_setting_keys),
-                            j,
-                            provider_target_setting_i_keys.index(
-                                j) + 1,
-                            len(provider_target_setting_i_keys)
-                            )
-                        )
-
-                    self.work_on_dir_with_basename(
-                        path,
-                        provider_name,
-                        i,
-                        j,
-                        settings_options
-                        )
-        return
-
-    def work_on_dir_with_settings_list(
-            self,
-            path,
-            provider_name,
-            provider_obj,
-            provider_project_names,
-            provider_target_setting,
-            settings_options
-            ):
-        self.logger.info(
-            "provider projects requested is list so"
-            " assuming no project division"
-            )
-
-        for i in provider_target_setting:
-            if i not in provider_project_names:
-                self.logger.error(
-                    "provider `{}' has no project `{}'".format(
-                        provider_name,
-                        i
-                        )
-                    )
-                continue
-
-            basenames = provider_obj.basenames(i)
-
-            for j in basenames:
-                self.logger.info(
-                    "    project: {} ({} of {})"
-                    " basename: {} ({} of {})".format(
-                        i,
-                        provider_target_setting.index(i) + 1,
-                        len(provider_target_setting),
-                        j,
-                        basenames.index(j) + 1,
-                        len(basenames)
-                        )
-                    )
-                self.work_on_dir_with_basename(
-                    path,
-                    provider_name,
-                    i,
-                    j,
-                    settings_options
-                    )
-        return
-
-    def work_on_dir_with_settings(self, path, settings):
-        """
-        settings['targets'] structure:
-        {
-            # if value to key is dict, then assume project devision of provider.
-            # else, if list, assume list of tarball basenames to get.
-            # if value is None - get all project names from provider and get all
-            # bases from them.
-            'gnu.org': {
-                'gcc': [  # list of tarball basenames to get. if None - get all
-                          # bases provided by project
-                    'gcc'
-                ]
-            }
-        }
-        """
 
         ret = 0
 
-        settings_targets = settings.get('targets', {})
-        settings_options = settings.get('options', {})
+        path = wayround_org.utils.path.abspath(path)
 
-        #print("settings_targets: {}".format(settings_targets))
-        #print("settings_options: {}".format(settings_options))
+        self.logger.info("loading provider: {}".format(provider_name))
 
-        requested_provider_names = list(settings_targets.keys())
+        provider_obj = self.uriexplorer.get_provider(provider_name)
 
-        requested_provider_names.sort()
+        if isinstance(project_names, str):
+            project_names = [project_names]
 
-        self.logger.info(
-            "{} provider name(s) in the list".format(
-                len(requested_provider_names)
-                )
-            )
-        self.logger.info('-' * 20)
+        if project_names is None and provider_obj.get_project_param_used():
+            project_names = provider_obj.get_project_names()
 
-        for provider_name in requested_provider_names:
-            self.logger.info(
-                "processing provider #{}: {}".format(
-                    requested_provider_names.index(provider_name),
-                    provider_name
-                    )
-                )
-            self.logger.info('-' * 20)
-            if provider_name not in self.uriexplorer.list_providers():
+            if project_names is None:
                 self.logger.error(
-                    "No requested provider named: {}".format(provider_name)
+                    "can't get project list for provider `{}'".format(
+                        provider_name
+                        )
                     )
-                continue
+                ret = 2
 
-            self.logger.info("loading provider: {}".format(provider_name))
-            provider = self.uriexplorer.get_provider(provider_name)
+        if ret == 0:
 
-            provider_has_projects = provider.get_project_param_used()
+            if project_names is None:
+                project_names = [None]
+
+        if ret == 0:
+
             self.logger.info(
-                "provider is project devided: {}".format(provider_has_projects)
+                "processing {} project names".format(len(project_names))
                 )
 
-            provider_project_names = None
-            if provider_has_projects:
-                provider_project_names = provider.get_project_names()
+            for project_name in project_names:
 
-            if isinstance(provider_has_projects, list):
-                self.logger.info(
-                    "provider supplies: {} project names".format(
-                        len(provider_has_projects)
-                        )
-                    )
+                basenames = provider_obj.basenames(project_name)
 
-            provider_target_setting = settings_targets[provider_name]
-
-            if provider_target_setting is None:
-                self.work_on_dir_with_settings_none(
-                    path,
-                    provider_name,
-                    provider,
-                    provider_has_projects,
-                    provider_project_names,
-                    settings_options
-                    )
-
-            elif isinstance(provider_target_setting, list):
-                if not provider_has_projects:
-                    self.logger.error(
-                        "setting for `{}' excludes projects subdivision, but "
-                        "this provider is subdivided on projects"
-                        "".format(provider_name)
-                        )
-                    continue
-                self.work_on_dir_with_settings_list(
-                    path,
-                    provider_name,
-                    provider,
-                    provider_project_names,
-                    provider_target_setting,
-                    settings_options
-                    )
-
-            elif isinstance(provider_target_setting, dict):
-                if not provider_has_projects:
-                    self.logger.error(
-                        "setting for `{}' means projects, but this provider"
-                        " isn't subdivided onto projects".format(provider_name)
-                        )
-                    continue
-                self.work_on_dir_with_settings_dict(
-                    path,
-                    provider_name,
-                    provider,
-                    provider_has_projects,
-                    provider_project_names,
-                    provider_target_setting,
-                    settings_options
-                    )
-
-            else:
-                self.logger.error(
-                    "invalid type of target description"
-                    " structure for provider:"
-                    " {}".format(provider_name)
-                    )
-
-        self.logger.info('-' * 20)
+                for basename in basenames:
+                    if self.work_on_dir_with_basename(
+                            path,
+                            provider_name,
+                            project_name,
+                            basename,
+                            mirroring_options
+                            ) != 0:
+                        ret = 3
 
         return ret
 
@@ -494,13 +245,15 @@ class Mirrorer:
             options
             ):
 
+        ret = 0
+
         self.logger.info(
             "task: {}, {}, {}".format(provider, project, basename)
             )
 
         path = wayround_org.utils.path.abspath(path)
 
-        provired_obj = self.uriexplorer.get_provider(provider)
+        provider_obj = self.uriexplorer.get_provider(provider)
 
         project_path_part = []
         if project is not None:
@@ -530,7 +283,7 @@ class Mirrorer:
         self.logger.info(
             "  getting list of tarballs for `{}:{}'".format(provider, project)
             )
-        tarballs = provired_obj.tarballs(project)  # [provider][]
+        tarballs = provider_obj.tarballs(project)  # [provider][]
         self.logger.info("    got {} item(s)".format(len(tarballs)))
 
         needed_tarballs = []
@@ -545,6 +298,11 @@ class Mirrorer:
                 continue
             if parse_result['groups']['name'] == basename:
                 needed_tarballs.append(i)
+
+        needed_tarballs = self.apply_filters(
+            needed_tarballs,
+            options.get('filter_lines', {})
+            )
 
         self.logger.info("    got {} item(s)".format(len(needed_tarballs)))
 
@@ -748,4 +506,26 @@ class Mirrorer:
                 os.unlink(ij)
             '''
 
-        return
+        return ret
+
+    def apply_filters(
+            self,
+            needed_tarballs,
+            filter_text_or_lines
+            ):
+
+        if isinstance(filter_text_or_lines, list):
+            filter_text_or_lines = '\n'.join(filter_text_or_lines)
+
+        lst = set(wayround_org.utils.list.filter_list(
+            [x[0] for x in needed_tarballs],
+            filter_text_or_lines
+            ))
+
+        ret = []
+
+        for i in needed_tarballs:
+            if i[0] in lst:
+                ret.append(i)
+
+        return ret

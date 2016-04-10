@@ -43,7 +43,7 @@ class Provider(
         return 'std_simple'
 
     def get_protocol_description(self):
-        return ['https', 'http']
+        return ['https', 'http', 'ftp']
 
     def get_is_provider_enabled(self):
         return False
@@ -75,9 +75,10 @@ class Provider(
 
         if project is not None:
             raise ValueError(
-                "`project' for `kernel.org' provider must always be None"
+                "`project' for `std_simple' provider must always be None"
                 )
 
+        #'''
         exclude_paths = self.simple_config.get('exclude_paths', [])
         exclude_paths_re = self.simple_config.get('exclude_paths_re', [])
         exclude_paths_bases = self.simple_config.get('exclude_paths_bases', [])
@@ -86,6 +87,7 @@ class Provider(
             )
         reject_files = self.simple_config.get('reject_files', [])
         reject_files_re = self.simple_config.get('reject_files_re', [])
+        #'''
 
         target_uri = self.simple_config.get('target_uri', None)
 
@@ -102,6 +104,7 @@ class Provider(
                 "Invalid URI scheme: not supported: {}".format(uri_obj.scheme)
                 )
 
+        #'''
         for i in exclude_paths:
             if fnmatch.fnmatch(path, i):
                 return [], {}
@@ -117,6 +120,7 @@ class Provider(
         for i in exclude_paths_bases_re:
             if regex.match(i, os.path.basename(path)):
                 return [], {}
+        #'''
 
         if use_cache:
             digest = hashlib.sha1()
@@ -196,6 +200,7 @@ class Provider(
 
                 ret = folders, files
 
+        #'''
         if ret[0] is not None:
 
             files = ret[1]
@@ -213,6 +218,7 @@ class Provider(
                             del files[i]
 
             ret = ret[0], files
+        #'''
 
         return ret
 

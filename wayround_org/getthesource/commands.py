@@ -41,6 +41,10 @@ def load_config(path):
             ret = yaml.load(f.read())
     except:
         logging.exception("error while loading config: {}".format(path))
+
+    if ret is None:
+        ret = {}
+
     return ret
 
 
@@ -267,6 +271,19 @@ def mirrorer_work_on_dir(command_name, opts, args, adds):
 
     if ret == 0:
 
+        if 'general' not in cfg:
+            cfg['general'] = {}
+
+        cfg['general']['log_dir'] = wayround_org.utils.path.join(
+            working_directory,
+            'wrogts-logs'
+            )
+
+        cfg['general']['cache_dir'] = wayround_org.utils.path.join(
+            working_directory,
+            'wrogts-cache'
+            )
+
         uriexplorer = wayround_org.getthesource.uriexplorer.URIExplorer(cfg)
         mirrorer = wayround_org.getthesource.mirrorer.Mirrorer(
             cfg,
@@ -322,8 +339,8 @@ def simple_mirroring(command_name, opts, args, adds):
 
     """
 
-    print("args: {}".format(args))
-    print("opts: {}".format(opts))
+    # print("args: {}".format(args))
+    # print("opts: {}".format(opts))
 
     cfg = load_config(CONFIG_PATH)
     ret = 0
@@ -373,12 +390,12 @@ def simple_mirroring(command_name, opts, args, adds):
 
         cfg['general']['log_dir'] = wayround_org.utils.path.join(
             working_directory,
-            'simple-logs'
+            'wrogts-logs'
             )
 
         cfg['general']['cache_dir'] = wayround_org.utils.path.join(
             working_directory,
-            'simple-cache'
+            'wrogts-cache'
             )
 
         simple_config = {
@@ -417,7 +434,7 @@ def simple_mirroring(command_name, opts, args, adds):
             simple_config=simple_config
             )
 
-        ret = mirrorer.work_on_dir(mirrorer_cfg)
+        ret = mirrorer.work_on_dir() # mirrorer_cfg
 
     return ret
 

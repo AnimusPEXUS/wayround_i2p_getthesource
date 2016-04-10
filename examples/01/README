@@ -2,7 +2,7 @@ This example shows how to configure wrogts to
 make mirrors for kernel.org, gnu.org and gnome.org
 
 Essentially this means:
-1. You need to reade separate dir
+1. You need to create separate dir
 2. Place wrogts_mirrorer.conf.yaml in dir created at step 1
 3. edit new wrogts_mirrorer.conf.yaml so there would be
     structure like so (YAML):

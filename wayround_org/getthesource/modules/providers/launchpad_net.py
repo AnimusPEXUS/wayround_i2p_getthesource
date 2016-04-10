@@ -8,6 +8,7 @@ import logging
 import urllib.request
 import datetime
 import hashlib
+import fnmatch
 
 import yaml
 import lxml.html
@@ -76,7 +77,7 @@ class Provider(
 
     def get_project_names(self, use_cache=True):
 
-        ret = ['apparmor']
+        ret = None
 
         return ret
 
@@ -113,6 +114,8 @@ class Provider(
             ret = dc.get_data_cache()
         else:
 
+            self.logger.info("searching in: {}".format(path))
+
             ret = None, None
 
             with urllib.request.urlopen(
@@ -126,16 +129,38 @@ class Provider(
 
             folders = []
             files = {}
+            hrefs = set()
 
-            hrefs = {}
-            for i in page.findall('.//a'):
-                hrefs.add(urllib.request.unquote(i.get('href', '')))
+            while True:
+
+                for i in doc.findall('.//a'):
+                    hrefs.add(urllib.request.unquote(i.get('href', '')))
+
+                next_a = doc.find('.//a[@class="next"]')
+
+                if next_a is None:
+                    break
+
+                next_a = next_a.get('href', None)
+
+                if next_a is None:
+                    break
+
+                self.logger.info("getting additioanl page: {}".format(next_a))
+
+                with urllib.request.urlopen(next_a) as f:
+                    download_page_txt = f.read()
+
+                doc = lxml.html.document_fromstring(download_page_txt)
 
             hrefs -= set([''])
 
             for i in hrefs:
                 if fnmatch.fnmatch(
-                        i, 'https://launchpad.net/{project}/*.tar*'
+                        i,
+                        'https://launchpad.net/{project}/*.tar*'.format(
+                            project=project
+                            )
                         ):
 
                     files[os.path.basename(i)] = i
