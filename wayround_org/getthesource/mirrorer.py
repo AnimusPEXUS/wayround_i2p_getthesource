@@ -301,7 +301,7 @@ class Mirrorer:
 
         needed_tarballs = self.apply_filters(
             needed_tarballs,
-            options.get('filter_lines', {})
+            options.get('filter_lines', [])
             )
 
         self.logger.info("    got {} item(s)".format(len(needed_tarballs)))
@@ -514,13 +514,20 @@ class Mirrorer:
             filter_text_or_lines
             ):
 
+        if not isinstance(filter_text_or_lines, (list, str)):
+            raise TypeError(
+                "`filter_text_or_lines' must be str or list of str"
+                )
+
         if isinstance(filter_text_or_lines, list):
             filter_text_or_lines = '\n'.join(filter_text_or_lines)
 
-        lst = set(wayround_org.utils.list.filter_list(
-            [x[0] for x in needed_tarballs],
-            filter_text_or_lines
-            ))
+        lst = set(
+            wayround_org.utils.list.filter_list(
+                [x[0] for x in needed_tarballs],
+                filter_text_or_lines
+                )
+            )
 
         ret = []
 
