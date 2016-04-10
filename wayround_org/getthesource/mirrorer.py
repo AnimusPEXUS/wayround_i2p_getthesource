@@ -48,7 +48,7 @@ class Mirrorer:
         self.working_path = working_path
 
         self.logger = wayround_org.utils.log.Log(
-            wayround_org.utils.path.join(self.working_path, 'logs'),
+            wayround_org.utils.path.join(self.working_path, 'wrogts-logs'),
             'mirrorer'
             )
 
@@ -107,7 +107,7 @@ class Mirrorer:
 
         return ret
 
-    def work_on_dir(self):  # , m_cfg=None
+    def work_on_dir(self, m_cfg=None):
         ret = 0
 
         path = self.working_path
@@ -429,11 +429,11 @@ class Mirrorer:
                         os.unlink(new_basename_full_cs)
 
                 if (actual_cs != saved_cs
-                    or (actual_cs == saved_cs is None)
-                    or actual_cs is None
-                    or saved_cs is None
-                    or (not os.path.isfile(new_basename_full))
-                    ):
+                        or (actual_cs == saved_cs is None)
+                        or actual_cs is None
+                        or saved_cs is None
+                        or (not os.path.isfile(new_basename_full))
+                        ):
                     if os.path.isfile(new_basename_full_cs):
                         os.unlink(new_basename_full_cs)
 

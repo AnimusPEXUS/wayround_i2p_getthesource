@@ -252,6 +252,9 @@ def basename_list(command_name, opts, args, adds):
 def mirrorer_work_on_dir(command_name, opts, args, adds):
     """
     DIRNAME - single required argument
+
+        -mc=path - use specified mirroring config file instead of
+            wrogts_mirrorer.conf.yaml under DIRNAME
     """
     ret = 0
     cfg = load_config(CONFIG_PATH)
@@ -284,13 +287,19 @@ def mirrorer_work_on_dir(command_name, opts, args, adds):
             'wrogts-cache'
             )
 
+        mirrorer_cfg = None
+
+        if '-mc' in opts:
+            with open(opts['-mc']) as f:
+                mirrorer_cfg = yaml.load(f.read())
+
         uriexplorer = wayround_org.getthesource.uriexplorer.URIExplorer(cfg)
         mirrorer = wayround_org.getthesource.mirrorer.Mirrorer(
             cfg,
             working_directory,
             uriexplorer
             )
-        ret = mirrorer.work_on_dir()
+        ret = mirrorer.work_on_dir(mirrorer_cfg)
 
     return ret
 
@@ -310,7 +319,16 @@ def simple_mirroring(command_name, opts, args, adds):
     dirs for files and downloads tarballs into separate (by basename) dirs.
 
     SYNOPSIS
-        simple URI [WORKDIRNAME]
+        simple
+            [-mc=path]
+            [-X=filters]
+            [-XB=filters]
+            [-R=filters]
+            [-XR=filters]
+            [-XBR=filters]
+            [-RR=filters]
+            [-TBW=filters]
+            URI [WORKDIRNAME]
 
         if WORKDIRNAME is not passed, current dir is used
 
@@ -336,6 +354,9 @@ def simple_mirroring(command_name, opts, args, adds):
 
         -TBW=COMMA_SEPARATED_LIST
             white list for tarball basenames
+
+        -mc=path - use specified mirroring config file instead of
+            wrogts_mirrorer.conf.yaml under WORKDIRNAME
 
     """
 
@@ -411,12 +432,11 @@ def simple_mirroring(command_name, opts, args, adds):
             'tarball_basenames_whitelist': tarball_basenames_whitelist
             }
 
-        mirrorer_cfg = [
-            {
-                'options': {},
-                'targets': {'std_simple': None}
-                }
-            ]
+        mirrorer_cfg = None
+
+        if '-mc' in opts:
+            with open(opts['-mc']) as f:
+                mirrorer_cfg = yaml.load(f.read())
 
         working_directory = os.path.abspath(working_directory)
 
@@ -434,7 +454,7 @@ def simple_mirroring(command_name, opts, args, adds):
             simple_config=simple_config
             )
 
-        ret = mirrorer.work_on_dir() # mirrorer_cfg
+        ret = mirrorer.work_on_dir(mirrorer_cfg)
 
     return ret
 
