@@ -3,6 +3,7 @@ import subprocess
 import os.path
 import re
 import yaml
+import random
 
 import wayround_org.utils.path
 import wayround_org.utils.file
@@ -187,7 +188,8 @@ def make_tarballs(
 def work_on_github_downloading_list(
         work_dir,
         list_file_path,
-        no_check_certificate=False
+        no_check_certificate=False,
+        verbose=True
         ):
     list_file_path = wayround_org.utils.path.abspath(list_file_path)
     work_dir = wayround_org.utils.path.abspath(work_dir)
@@ -195,8 +197,12 @@ def work_on_github_downloading_list(
     with open(list_file_path) as f:
         targets = yaml.load(f.read())
 
-    for i in targets.keys():
-        for j in targets[i].keys():
+    k1 = sorted(list(targets.keys()))
+    random.shuffle(k1)
+    for i in k1:
+        for j in sorted(list(targets[i].keys())):
+            if verbose:
+                print("mirroring {}:{}".format(i, j))
 
             git_dir = wayround_org.utils.path.join(
                 work_dir,
@@ -213,6 +219,56 @@ def work_on_github_downloading_list(
 
             clone_and_update(
                 'https://github.com/{}/{}.git'.format(i, j),
+                git_dir,
+                no_check_certificate=no_check_certificate
+                )
+
+            targets_i_j = targets[i][j]
+
+            work_on_instructions(
+                git_dir,
+                tarballs_dir,
+                targets_i_j,
+                "{}:{}".format(i, j)
+                )
+
+    return
+
+
+def work_on_gitlab_downloading_list(
+        work_dir,
+        list_file_path,
+        no_check_certificate=False,
+        verbose=True
+        ):
+    list_file_path = wayround_org.utils.path.abspath(list_file_path)
+    work_dir = wayround_org.utils.path.abspath(work_dir)
+
+    with open(list_file_path) as f:
+        targets = yaml.load(f.read())
+
+    k1 = sorted(list(targets.keys()))
+    random.shuffle(k1)
+    for i in k1:
+        for j in sorted(list(targets[i].keys())):
+            if verbose:
+                print("mirroring {}:{}".format(i, j))
+
+            git_dir = wayround_org.utils.path.join(
+                work_dir,
+                i,
+                j,
+                'git'
+                )
+            tarballs_dir = wayround_org.utils.path.join(
+                work_dir,
+                i,
+                j,
+                'tarballs'
+                )
+
+            clone_and_update(
+                'https://gitlab.com/{}/{}.git'.format(i, j),
                 git_dir,
                 no_check_certificate=no_check_certificate
                 )
@@ -292,7 +348,7 @@ def work_on_instructions(
 
     if isinstance(make_tarballs_instructions, list):
         for i in make_tarballs_instructions:
-            if isinstance(k, dict):
+            if isinstance(i, dict):
                 make_tarballs(
                     git_dir,
                     tarballs_dir,

@@ -377,15 +377,14 @@ class Mirrorer:
                         tarballs_to_delete.append(i)
 
             self.logger.info(
-                "  {} file(s) is marked for download: {}".format(
+                "  {} file(s) are marked for download: {}".format(
                     len(tarballs_to_download),
                     [os.path.basename(i[0]) for i in tarballs_to_download]
                     )
                 )
 
             self.logger.info(
-                "  {} file(s) is marked as truncated"
-                " (and will be deleted) (deletion is disabled for bugs): {}".format(
+                "  {} file(s) are marked for deletion: {}".format(
                     len(tarballs_to_delete),
                     tarballs_to_delete
                     )

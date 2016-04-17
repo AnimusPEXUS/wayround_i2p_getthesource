@@ -29,6 +29,7 @@ def commands():
         ('run-mirroring', mirrorer_work_on_dir),
         ('simple', simple_mirroring),
         ('mirror-github', mirror_github),
+        ('mirror-gitlab', mirror_gitlab),
         ('mirror-git', mirror_git),
     ])
     return ret
@@ -473,6 +474,27 @@ def mirror_github(command_name, opts, args, adds):
         )
 
     wayround_org.getthesource.git_tool.work_on_github_downloading_list(
+        working_dir,
+        list_file_path
+        )
+
+    return ret
+
+
+def mirror_gitlab(command_name, opts, args, adds):
+    ret = 0
+
+    working_dir = os.getcwd()
+    if len(args) == 1:
+        working_dir = args[0]
+
+    working_dir = wayround_org.utils.path.abspath(working_dir)
+    list_file_path = wayround_org.utils.path.join(
+        working_dir,
+        'download_list.yaml'
+        )
+
+    wayround_org.getthesource.git_tool.work_on_gitlab_downloading_list(
         working_dir,
         list_file_path
         )

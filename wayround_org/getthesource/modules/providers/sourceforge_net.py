@@ -78,6 +78,9 @@ class Provider(
     def get_project_names(self, use_cache=True):
         return None
 
+    def listdir_timeout(self):
+        return datetime.timedelta(days=3)
+
     def listdir(self, project, path='/', use_cache=True):
         """
         params:
