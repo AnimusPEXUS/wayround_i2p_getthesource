@@ -11,9 +11,13 @@ import wayround_org.utils.version
 
 
 STD_TAG_RE = (
-    r'^(?P<prefix>.*?)[\-\_]?'
-    r'(?P<version>(\d+[\_\-\.]?)+)[\-\_]?(?P<suffix>.*?)$'
+    r'^'
+    r'((?P<prefix>.*?)[\-\_]?)?'
+    r'(?P<version>\d+(?P<delim>[\_\-\.])(\d+(?P=delim)?)*)'
+    r'([\-\_]??(?P<suffix>.*?)??)??'
+    r'$'
     )
+#STD_TAG_RE_C = re.compile(STD_TAG_RE)
 
 
 def clone_and_update(
@@ -61,40 +65,58 @@ def get_tags(git_dir):
 
 
 def archive(git_dir, tag, output_filename, prefix):
-    cmd = ['git',
-           'archive',
-           '--prefix={}/'.format(prefix),
-           '-o', output_filename,
-           tag,  # git_dir
-           ]
-    p = subprocess.Popen(
-        cmd,
-        cwd=git_dir,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-        )
-    ret = p.wait()
+    #print("archive: `{}'".format(tag))
+    ret = 0
+    sum_file_name = output_filename + '.sha512'
+    do_write = False
+    if not os.path.isfile(sum_file_name):
+        do_write = True
+    else:
+
+        with open(sum_file_name) as f:
+            summ = f.read().strip()
+
+        if summ.lower() != wayround_org.utils.checksum.make_file_checksum(
+                output_filename,
+                'sha512'
+                ).lower():
+            do_write = True
+
+    if do_write:
+
+        print(
+            "  archive: `{}' -> {}".format(
+                tag,
+                os.path.basename(output_filename)
+                )
+            )
+
+        cmd = ['git',
+               'archive',
+               '--prefix={}/'.format(prefix),
+               '-o', output_filename,
+               tag,  # git_dir
+               ]
+
+        #print("arch cmd: {}".format(' '.join(cmd)))
+
+        p = subprocess.Popen(
+            cmd,
+            cwd=git_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+            )
+        ret = p.wait()
+        if ret == 0:
+            with open(sum_file_name, 'w') as f:
+                f.write(
+                    wayround_org.utils.checksum.make_file_checksum(
+                        output_filename,
+                        'sha512'
+                        ).lower()
+                    )
+
     return ret
-
-
-def parse_git_tag(tag):
-
-    prefix = None
-    version = None
-    suffix = None
-
-    re_res = re.match(
-        r'^(?P<prefix>.*?)[\-\_]?'
-        r'(?P<version>(\d+[\_\-\.]?)+)[\-\_]?(?P<suffix>.*?)$',
-        tag
-        )
-
-    if re_res is not None:
-        prefix = re_res.group('prefix')
-        version = re_res.group('version')
-        suffix = re_res.group('suffix')
-
-    return prefix, version, suffix
 
 
 def make_tarballs(
@@ -102,7 +124,7 @@ def make_tarballs(
         output_dir,
         basename='v',
         needed_tag_re_prefix_is='v',
-        needed_tag_re_suffix_is='',
+        needed_tag_re_suffix_is='^$',
         needed_tag_re=STD_TAG_RE,
         tarball_format='tar.xz',
         truncate_versions=3
@@ -120,24 +142,67 @@ def make_tarballs(
 
     # print("tags result for {} is: {}".format(git_dir, tags))
 
-    acceptable_tag_versions = {}
+    acceptable_tags = {}
 
     for i in tags:
         re_res = re.match(needed_tag_re, i)
         if re_res is not None:
-            # print('re_res prefix: {}'.format(re_res.group('prefix')))
-            # print('re_res suffix: {}'.format(re_res.group('suffix')))
-            if (needed_tag_re_prefix_is == re_res.group('prefix')
-                    and needed_tag_re_suffix_is == re_res.group('suffix')):
-                version_str = re_res.group('version')
+            prefix = re_res.group('prefix')
+            version = re_res.group('version')
+            delim = re_res.group('delim')
+            suffix = re_res.group('suffix')
+
+            if prefix is None:
+                prefix = ''
+
+            if suffix is None:
+                suffix = ''
+
+            if prefix is not None:
+                prefix = prefix.strip('-._')
+
+            if suffix is not None:
+                suffix = suffix.strip('-._')
+
+            '''
+            print('i: {}'.format(i))
+
+            print('re_res prefix: {}'.format(prefix))
+            print('re_res version: {}'.format(version))
+            print('re_res delim: {}'.format(delim))
+            print('re_res suffix: {}'.format(suffix))
+            print('-' * 20)
+            '''
+            if (
+                (
+                    prefix is not None
+                    and re.match(needed_tag_re_prefix_is, prefix)
+                    )
+                and (
+                    suffix is not None
+                    and re.match(needed_tag_re_suffix_is, suffix)
+                    )
+                    ):
+
+                version_str = version
                 for j in ['-', '_']:
                     version_str = version_str.replace(j, '.')
 
-                acceptable_tag_versions[version_str] = i
+                version_str = version_str.strip('-._')
+
+                acceptable_tags[i] = {
+                    'tag': i,
+                    'prefix': prefix,
+                    'suffix': suffix,
+                    'version': version,
+                    'version_str': version_str
+                    }
 
     acceptable_tag_versions2 = []
-    for i in list(acceptable_tag_versions.keys()):
-        acceptable_tag_versions2.append('v{}.tar.xz'.format(i))
+    for i in list(acceptable_tags.keys()):
+        acceptable_tag_versions2.append(
+            'v{}.tar.xz'.format(acceptable_tags[i]['version_str'])
+            )
 
     tree = wayround_org.utils.version.same_base_structurize_by_version(
         acceptable_tag_versions2
@@ -152,17 +217,26 @@ def make_tarballs(
             )
         )
 
-    for i in list(acceptable_tag_versions.keys()):
-        if not 'v{}.tar.xz'.format(i) in acceptable_tag_versions2:
-            del acceptable_tag_versions[i]
+    for i in list(acceptable_tags.keys()):
+        if (not 'v{}.tar.xz'.format(acceptable_tags[i]['version_str'])
+                in acceptable_tag_versions2):
+            del acceptable_tags[i]
 
     del acceptable_tag_versions2
 
     # raise Exception
 
-    for i in acceptable_tag_versions.keys():
+    for i in acceptable_tags.keys():
 
-        basename_plus_version = '{}-{}'.format(basename_str, i)
+        suffix_str = ''
+        if len(acceptable_tags[i]['suffix']) != 0:
+            suffix_str = '-{}'.format(acceptable_tags[i]['suffix'])
+
+        basename_plus_version = '{}-{}{}'.format(
+            basename_str,
+            acceptable_tags[i]['version_str'],
+            suffix_str
+            )
 
         new_file_basename = '{}.{}'.format(
             basename_plus_version,
@@ -174,13 +248,13 @@ def make_tarballs(
             new_file_basename
             )
 
-        if not os.path.isfile(output_filename):
-            archive(
-                git_dir,
-                acceptable_tag_versions[i],
-                output_filename,
-                basename_plus_version
-                )
+        # if not os.path.isfile(output_filename):
+        archive(
+            git_dir,
+            i,
+            output_filename,
+            basename_plus_version
+            )
 
     return ret
 
