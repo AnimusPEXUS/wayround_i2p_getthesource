@@ -226,7 +226,7 @@ def make_tarballs(
 
     # raise Exception
 
-    for i in acceptable_tags.keys():
+    for i in reversed(sorted(list(acceptable_tags.keys()))):
 
         suffix_str = ''
         if len(acceptable_tags[i]['suffix']) != 0:
