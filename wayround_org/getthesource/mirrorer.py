@@ -69,6 +69,8 @@ class Mirrorer:
 
         self._load_downloaders_list()
 
+        self.pers_prov_obj = None
+
         return
 
     def _load_downloaders_list(self):
@@ -161,6 +163,10 @@ class Mirrorer:
                 for i in m_cfg:
 
                     provider_name = i.get('provider_name', None)
+                    if provider_name is None:
+                        self.logger.error("provider name should be supplied")
+                        ret = 3
+                        continue
 
                     project_names = i.get('project_names', None)
 
@@ -253,7 +259,11 @@ class Mirrorer:
 
         path = wayround_org.utils.path.abspath(path)
 
-        provider_obj = self.uriexplorer.get_provider(provider)
+        if provider == 'std_simple' and self.pers_prov_obj is not None:
+            provider_obj = self.pers_prov_obj
+        else:
+            provider_obj = self.uriexplorer.get_provider(provider)
+            self.pers_prov_obj = provider_obj
 
         project_path_part = []
         if project is not None:
@@ -428,10 +438,10 @@ class Mirrorer:
                         os.unlink(new_basename_full_cs)
 
                 if (actual_cs != saved_cs
-                        or (actual_cs == saved_cs is None)
-                        or actual_cs is None
-                        or saved_cs is None
-                        or (not os.path.isfile(new_basename_full))
+                            or (actual_cs == saved_cs is None)
+                            or actual_cs is None
+                            or saved_cs is None
+                            or (not os.path.isfile(new_basename_full))
                         ):
                     if os.path.isfile(new_basename_full_cs):
                         os.unlink(new_basename_full_cs)

@@ -224,8 +224,6 @@ def make_tarballs(
 
     del acceptable_tag_versions2
 
-    # raise Exception
-
     for i in reversed(sorted(list(acceptable_tags.keys()))):
 
         suffix_str = ''
@@ -248,7 +246,6 @@ def make_tarballs(
             new_file_basename
             )
 
-        # if not os.path.isfile(output_filename):
         archive(
             git_dir,
             i,
