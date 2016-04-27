@@ -226,11 +226,11 @@ class Mirrorer:
                 "processing {} project names".format(len(project_names))
                 )
 
-            for project_name in project_names:
+            for project_name in sorted(project_names):
 
                 basenames = provider_obj.basenames(project_name)
 
-                for basename in basenames:
+                for basename in sorted(basenames):
                     if self.work_on_dir_with_basename(
                             path,
                             provider_name,
