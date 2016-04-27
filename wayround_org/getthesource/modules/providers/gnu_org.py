@@ -192,11 +192,16 @@ class Provider(
                 files_d[i] = '{}{}'.format(
                     self.get_provider_main_downloads_uri(),
                     wayround_org.utils.path.join(
-                        project,
-                        # path,
+                        #project,
+                        path.split('/')[1:],
                         i
                         )
                     )
+
+                #print("files_d[i] : {}".format(files_d[i]))
+                #print("project : {}".format(project))
+                #print("path : {}".format(path))
+                #print("i : {}".format(i))
 
             files = files_d
 
