@@ -136,11 +136,9 @@ class Provider(
 
                 ret = ases
 
-                '''
-                for i in ['8sync']:
+                for i in ['8sync', 'icecat']:
                     while i in ret:
                         ret.remove(i)
-                '''
 
         return ret
 
