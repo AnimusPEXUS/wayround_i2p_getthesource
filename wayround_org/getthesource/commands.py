@@ -13,6 +13,7 @@ import wayround_org.utils.path
 import wayround_org.getthesource.uriexplorer
 import wayround_org.getthesource.mirrorer
 import wayround_org.getthesource.git_tool
+import wayround_org.getthesource.repo_worker
 
 
 CONFIG_PATH = '/etc/wrogts.conf.yaml'
@@ -31,6 +32,7 @@ def commands():
         ('mirror-github', mirror_github),
         ('mirror-gitlab', mirror_gitlab),
         ('mirror-git', mirror_git),
+        ('work-on-repo', repo_do_work)
     ])
     return ret
 
@@ -520,4 +522,11 @@ def mirror_git(command_name, opts, args, adds):
         list_file_path
         )
 
+    return ret
+
+
+def repo_do_work(command_name, opts, args, adds):
+    ret = 0
+    path = os.path.abspath(os.getcwd())
+    ret = wayround_org.getthesource.repo_worker(path)
     return ret
