@@ -103,36 +103,32 @@ class Provider(
 
             tag = None
 
+            # if page_parsed is not None:
+            #    tag = page_parsed.find('.//body')
+
             if page_parsed is not None:
-                tag = page_parsed.find('.//body')
+                tag = page_parsed.find(
+                    './/div[@class="package-list emph-box"]')
 
-            if tag is not None:
-                tag = tag.find('div[@class="inner"]')
+            # if tag is not None:
+            #    tag = tag.find('div[@id="content"]')
 
-            if tag is not None:
-                tag = tag.find('div[@id="content"]')
+            print("tag = {}".format(tag))
 
             uls_needed = 2
 
             if tag is not None:
                 ases = list()
-                ul_found = False
 
                 for i in tag:
 
-                    if ul_found:
-                        if type(i) == lxml.html.HtmlElement:
-                            if i.tag == 'a':
-                                ir = i.get('href', None)
-                                if ir is not None:
-                                    ases.append(ir.strip('/'))
-                            else:
-                                break
-                    else:
-                        if type(i) == lxml.html.HtmlElement and i.tag == 'ul':
-                            uls_needed -= 1
-                            if uls_needed == 0:
-                                ul_found = True
+                    if type(i) == lxml.html.HtmlElement:
+                        if i.tag == 'a':
+                            ir = i.get('href', None)
+                            if ir is not None:
+                                ases.append(ir.strip('/'))
+                        else:
+                            break
 
                 ret = ases
 
@@ -190,7 +186,7 @@ class Provider(
                 files_d[i] = '{}{}'.format(
                     self.get_provider_main_downloads_uri(),
                     wayround_org.utils.path.join(
-                        #project,
+                        # project,
                         path.split('/')[1:],
                         i
                         )

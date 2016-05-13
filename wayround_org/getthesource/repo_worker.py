@@ -39,11 +39,11 @@ def work_on_source_repository(path):
         random.shuffle(lst_dirs)
         for i in lst_dirs:
             j = wayround_org.utils.path.join(path, i)
-            print("   passing recursuin under: {}".format(j))
+            print("   discending into: {}".format(j))
             work_on_source_repository(j)
             print("   recursion exited from: {}".format(j))
     elif 'upp.py' in lst_files:
-        print("   found upp.py")
+        print("   starting upp.py")
         file_ = wayround_org.utils.path.join(path, 'upp.py')
         p = subprocess.Popen(
             ['python3', file_],
@@ -53,7 +53,7 @@ def work_on_source_repository(path):
         p_ret = p.wait()
         print("      {} exited with {}".format(file_, p_ret))
     elif 'upp.sh' in lst_files:
-        print("   found upp.sh")
+        print("   starting upp.sh")
         file_ = wayround_org.utils.path.join(path, 'upp.sh')
         p = subprocess.Popen(
             ['bash', file_],
