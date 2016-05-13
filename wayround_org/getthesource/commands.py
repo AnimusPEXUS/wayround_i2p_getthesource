@@ -528,5 +528,5 @@ def mirror_git(command_name, opts, args, adds):
 def repo_do_work(command_name, opts, args, adds):
     ret = 0
     path = os.path.abspath(os.getcwd())
-    ret = wayround_org.getthesource.repo_worker(path)
+    ret = wayround_org.getthesource.repo_worker.work_on_source_repository(path)
     return ret

@@ -140,4 +140,5 @@ class URIExplorer:
         return self._list_x(providers, projects, 'basenames')
 
     def render_provider_info(self, provider_name):
+        # TODO
         return
