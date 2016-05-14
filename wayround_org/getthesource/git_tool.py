@@ -65,7 +65,6 @@ def get_tags(git_dir):
 
 
 def archive(git_dir, tag, output_filename, prefix):
-    #print("archive: `{}'".format(tag))
     ret = 0
     sum_file_name = output_filename + '.sha512'
     do_write = False
@@ -95,10 +94,8 @@ def archive(git_dir, tag, output_filename, prefix):
                'archive',
                '--prefix={}/'.format(prefix),
                '-o', output_filename,
-               tag,  # git_dir
+               tag,
                ]
-
-        #print("arch cmd: {}".format(' '.join(cmd)))
 
         p = subprocess.Popen(
             cmd,

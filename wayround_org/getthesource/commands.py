@@ -505,6 +505,18 @@ def mirror_gitlab(command_name, opts, args, adds):
 
 
 def mirror_git(command_name, opts, args, adds):
+    """
+    config file should be named download_list.yaml and be of structure:
+    list of 3-lists, where 1 item is git repo uri, 2 item output directory
+    and 3 item is target downloading instructions, like in mirror-github cmd
+    can be none
+
+    example:
+
+    - - 'git://git.code.sf.net/p/nethack/NetHack'
+      - 'output_dir'
+      - none
+    """
     ret = 0
 
     working_dir = os.getcwd()
