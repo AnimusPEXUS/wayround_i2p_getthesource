@@ -5,6 +5,7 @@ import yaml
 import pprint
 import logging
 import regex
+import datetime
 
 import wayround_org.utils.getopt
 import wayround_org.utils.text
@@ -463,6 +464,39 @@ def simple_mirroring(command_name, opts, args, adds):
 
 
 def mirror_github(command_name, opts, args, adds):
+    """
+
+    makes mirror of selected github projects. optionally careating archives.
+
+    example of download_list.yaml:
+
+    libgit2:
+      libgit2:
+        make-tarballs: [libgit2]
+
+    another one example:
+
+    xkbcommon:
+      libxkbcommon:
+        make-tarballs:
+          - {basename: libxkbcommon, needed_tag_re_prefix_is: 'xkbcommon',
+             needed_tag_re_suffix_is: '^$'}
+
+    make-tarballs value is list of dicts:
+
+        make-tarballs:
+          - { # default values
+              basename='v',                 # basename to use for naming
+                                            # archives
+              needed_tag_re_prefix_is='v',  # basename of tags which usable for
+                                            # archiving
+              needed_tag_re_suffix_is='^$', # same as needed_tag_re_prefix_is
+                                            # but for suffix
+              needed_tag_re=STD_TAG_RE,     # complete re to be used
+              tarball_format='tar.xz',      # format for created archives
+              truncate_versions=3           # version truncation number
+            }
+    """
     ret = 0
 
     working_dir = os.getcwd()
@@ -511,11 +545,13 @@ def mirror_git(command_name, opts, args, adds):
     and 3 item is target downloading instructions, like in mirror-github cmd
     can be none
 
+    see mirror-github help for description of third list item
+
     example:
 
-    - - 'git://git.code.sf.net/p/nethack/NetHack'
-      - 'output_dir'
-      - none
+    - - 'https://go.googlesource.com/go'
+      - 'git'
+      - {make-tarballs: [{basename: go, needed_tag_re_prefix_is: go}]}
     """
     ret = 0
 
@@ -529,10 +565,22 @@ def mirror_git(command_name, opts, args, adds):
         'download_list.yaml'
         )
 
+    log_file_path = wayround_org.utils.path.join(
+        working_dir,
+        'log.txt'
+        )
+
+    f = open(log_file_path, 'w')
+    f.write("start: {}\n".format(datetime.datetime.now()))
+    f.flush()
+
     wayround_org.getthesource.git_tool.work_on_git_downloading_list(
         working_dir,
         list_file_path
         )
+
+    f.write("end: {}\n".format(datetime.datetime.now()))
+    f.close()
 
     return ret
 
