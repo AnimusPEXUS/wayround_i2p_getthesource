@@ -3,8 +3,11 @@ import os.path
 import subprocess
 import random
 import datetime
+import yaml
+import collections
 
 import wayround_org.utils.path
+import wayround_org.utils.datetime_iso8601
 
 
 def work_on_source_repository(path):
@@ -14,6 +17,27 @@ def work_on_source_repository(path):
     path = wayround_org.utils.path.abspath(path)
 
     print("work_on_source_repository at: {}".format(path))
+
+    start_stop_file = open(
+        os.path.join(path, 'start_stop.yaml'),
+        'w'
+        )
+
+    start_stop_file.write(
+        yaml.dump([
+            collections.OrderedDict(
+                {
+                    'action': 'begin',
+                    'datetime_UTC0':
+                    wayround_org.utils.datetime_iso8601.to_str(
+                        datetime.datetime.utcnow()
+                        )
+                }
+                )
+            ])
+        )
+
+    start_stop_file.flush()
 
     print("getting file list")
 
@@ -44,6 +68,19 @@ def work_on_source_repository(path):
         f.write(" (note: below count is starting from 1 (one))\n")
         f.write(" (note: datetime is local UTC time\n")
         f.flush()
+
+        f.write(" order:\n")
+
+        for i in lst_dirs:
+            f.write(
+                " ({:>5}) {}\n".format(
+                    str(lst_dirs.index(i) + 1),
+                    i
+                    )
+                )
+
+        f.flush()
+
         for i in lst_dirs:
             f.write(
                 " ({:>5} of {:>5}) (time: {}) going to enter: {}\n".format(
@@ -83,6 +120,23 @@ def work_on_source_repository(path):
     else:
         print("   nothing found")
         print("    exiting")
+
+    start_stop_file.write(
+        yaml.dump([
+            collections.OrderedDict(
+                {
+                    'action': 'end',
+                    'datetime_UTC0':
+                    wayround_org.utils.datetime_iso8601.to_str(
+                        datetime.datetime.utcnow()
+                        ),
+                    'status': ret
+                }
+                )
+            ])
+        )
+
+    start_stop_file.close()
 
     print("work_on_source_repository exiting from: {}".format(path))
 
