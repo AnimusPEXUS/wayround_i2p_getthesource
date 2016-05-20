@@ -78,6 +78,9 @@ class Provider(
     def get_project_names(self, use_cache=True):
         return None
 
+    def tarballs_timeout(self):
+        return datetime.timedelta(days=3)
+
     def listdir_timeout(self):
         return datetime.timedelta(days=3)
 
