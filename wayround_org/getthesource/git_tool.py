@@ -8,12 +8,13 @@ import random
 import wayround_org.utils.path
 import wayround_org.utils.file
 import wayround_org.utils.version
+import wayround_org.utils.checksum
 
 
 STD_TAG_RE = (
     r'^'
     r'((?P<prefix>.*?)[\-\_]?)?'
-    r'(?P<version>\d+(?P<delim>[\_\-\.])(\d+(?P=delim)?)*)'
+    r'(?P<version>\d+(?P<delim>[\_\-\.])?(\d+(?P=delim)?)*)'
     r'([\-\_]??(?P<suffix>.*?)??)??'
     r'$'
     )
@@ -170,6 +171,7 @@ def make_tarballs(
             print('re_res suffix: {}'.format(suffix))
             print('-' * 20)
             '''
+
             if (
                 (
                     prefix is not None

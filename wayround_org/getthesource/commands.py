@@ -2,19 +2,12 @@
 import os.path
 import collections
 import yaml
-import pprint
 import logging
-import regex
 import datetime
 
 import wayround_org.utils.getopt
 import wayround_org.utils.text
 import wayround_org.utils.path
-
-import wayround_org.getthesource.uriexplorer
-import wayround_org.getthesource.mirrorer
-import wayround_org.getthesource.git_tool
-import wayround_org.getthesource.repo_worker
 
 
 CONFIG_PATH = '/etc/wrogts.conf.yaml'
@@ -33,7 +26,9 @@ def commands():
         ('mirror-github', mirror_github),
         ('mirror-gitlab', mirror_gitlab),
         ('mirror-git', mirror_git),
-        ('work-on-repo', repo_do_work)
+        ('work-on-repo', repo_do_work),
+        ('get-openjdk', download_openjdk),
+        ('get-openjfx', download_openjfx),
     ])
     return ret
 
@@ -67,6 +62,10 @@ def interprete_project_param_value(value):
 
 
 def providers_list(command_name, opts, args, adds):
+
+    import wayround_org.getthesource.mirrorer
+    import wayround_org.getthesource.uriexplorer
+
     ret = 0
     cfg = load_config(CONFIG_PATH)
 
@@ -139,6 +138,10 @@ def provider_projects_list(command_name, opts, args, adds):
 
 
 def tarball_list(command_name, opts, args, adds):
+
+    import wayround_org.getthesource.mirrorer
+    import wayround_org.getthesource.uriexplorer
+
     ret = 0
     cfg = load_config(CONFIG_PATH)
 
@@ -198,6 +201,10 @@ def tarball_list(command_name, opts, args, adds):
 
 
 def basename_list(command_name, opts, args, adds):
+
+    import wayround_org.getthesource.mirrorer
+    import wayround_org.getthesource.uriexplorer
+
     ret = 0
     cfg = load_config(CONFIG_PATH)
 
@@ -260,6 +267,10 @@ def mirrorer_work_on_dir(command_name, opts, args, adds):
         -mc=path - use specified mirroring config file instead of
             wrogts_mirrorer.conf.yaml under DIRNAME
     """
+
+    import wayround_org.getthesource.mirrorer
+    import wayround_org.getthesource.uriexplorer
+
     ret = 0
     cfg = load_config(CONFIG_PATH)
 
@@ -363,6 +374,9 @@ def simple_mirroring(command_name, opts, args, adds):
             wrogts_mirrorer.conf.yaml under WORKDIRNAME
 
     """
+
+    import wayround_org.getthesource.mirrorer
+    import wayround_org.getthesource.uriexplorer
 
     # print("args: {}".format(args))
     # print("opts: {}".format(opts))
@@ -497,6 +511,9 @@ def mirror_github(command_name, opts, args, adds):
               truncate_versions=3           # version truncation number
             }
     """
+
+    import wayround_org.getthesource.git_tool
+
     ret = 0
 
     working_dir = os.getcwd()
@@ -553,6 +570,9 @@ def mirror_git(command_name, opts, args, adds):
       - 'git'
       - {make-tarballs: [{basename: go, needed_tag_re_prefix_is: go}]}
     """
+
+    import wayround_org.getthesource.git_tool
+
     ret = 0
 
     working_dir = os.getcwd()
@@ -586,7 +606,54 @@ def mirror_git(command_name, opts, args, adds):
 
 
 def repo_do_work(command_name, opts, args, adds):
+
+    import wayround_org.getthesource.repo_worker
+
     ret = 0
     path = os.path.abspath(os.getcwd())
     ret = wayround_org.getthesource.repo_worker.work_on_source_repository(path)
+    return ret
+
+
+def download_openjdk(command_name, opts, args, adds):
+
+    import wayround_org.getthesource.openjdk_downloader
+
+    ret = 0
+
+    if len(args) != 1:
+        logging.error("tag name is required parameter")
+        ret = 1
+
+    if ret == 0:
+
+        requested_tag = args[0]
+
+        ret = wayround_org.getthesource.openjdk_downloader.jdk_routine(
+            requested_tag,
+            os.getcwd()
+            )
+
+    return ret
+
+
+def download_openjfx(command_name, opts, args, adds):
+
+    import wayround_org.getthesource.openjdk_downloader
+
+    ret = 0
+
+    if len(args) != 1:
+        logging.error("tag name is required parameter")
+        ret = 1
+
+    if ret == 0:
+
+        requested_tag = args[0]
+
+        ret = wayround_org.getthesource.openjdk_downloader.jfx_routine(
+            requested_tag,
+            os.getcwd()
+            )
+
     return ret
