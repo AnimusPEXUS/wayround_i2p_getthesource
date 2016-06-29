@@ -1,19 +1,22 @@
 #!/usr/bin/python3
 
-import sys
 
-del sys.path[0]
+def main():
 
-import logging
+    import sys
 
-import wayround_org.utils.program
+    del sys.path[0]
 
-wayround_org.utils.program.logging_setup(loglevel='INFO')
+    import logging
 
-import wayround_org.getthesource.commands
+    import wayround_org.utils.program
 
-commands = wayround_org.getthesource.commands.commands()
+    wayround_org.utils.program.logging_setup(loglevel='INFO')
 
-ret = wayround_org.utils.program.program('wrogts', commands, None)
+    import wayround_org.getthesource.commands
 
-exit(ret)
+    commands = wayround_org.getthesource.commands.commands()
+
+    ret = wayround_org.utils.program.program('wrogts', commands, None)
+
+    return ret
