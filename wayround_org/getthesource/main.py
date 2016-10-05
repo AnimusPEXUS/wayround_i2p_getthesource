@@ -20,3 +20,6 @@ def main():
     ret = wayround_org.utils.program.program('wrogts', commands, None)
 
     return ret
+
+if __name__ == '__main__':
+    exit(main())
