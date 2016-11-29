@@ -5,9 +5,9 @@ import yaml
 import logging
 import datetime
 
-import wayround_org.utils.getopt
-import wayround_org.utils.text
-import wayround_org.utils.path
+import wayround_i2p.utils.getopt
+import wayround_i2p.utils.text
+import wayround_i2p.utils.path
 
 
 CONFIG_PATH = '/etc/wrogts.conf.yaml'
@@ -63,8 +63,8 @@ def interprete_project_param_value(value):
 
 def providers_list(command_name, opts, args, adds):
 
-    import wayround_org.getthesource.mirrorer
-    import wayround_org.getthesource.uriexplorer
+    import wayround_i2p.getthesource.mirrorer
+    import wayround_i2p.getthesource.uriexplorer
 
     ret = 0
     cfg = load_config(CONFIG_PATH)
@@ -73,12 +73,12 @@ def providers_list(command_name, opts, args, adds):
         ret = 2
 
     if ret == 0:
-        controller = wayround_org.getthesource.uriexplorer.URIExplorer(cfg)
+        controller = wayround_i2p.getthesource.uriexplorer.URIExplorer(cfg)
         res = controller.list_providers()
 
         print("count: {}".format(len(res)))
         print(
-            wayround_org.utils.text.return_columned_list(
+            wayround_i2p.utils.text.return_columned_list(
                 res,
                 width=80
                 ),
@@ -115,7 +115,7 @@ def provider_projects_list(command_name, opts, args, adds):
 
         provider = provider[0]
 
-        controller = wayround_org.getthesource.uriexplorer.URIExplorer(cfg)
+        controller = wayround_i2p.getthesource.uriexplorer.URIExplorer(cfg)
         res = controller.list_projects(provider)
 
         if res is None:
@@ -126,7 +126,7 @@ def provider_projects_list(command_name, opts, args, adds):
         else:
             print("count: {}".format(len(res)))
             print(
-                wayround_org.utils.text.return_columned_list(
+                wayround_i2p.utils.text.return_columned_list(
                     res,
                     width=80
                     ),
@@ -139,8 +139,8 @@ def provider_projects_list(command_name, opts, args, adds):
 
 def tarball_list(command_name, opts, args, adds):
 
-    import wayround_org.getthesource.mirrorer
-    import wayround_org.getthesource.uriexplorer
+    import wayround_i2p.getthesource.mirrorer
+    import wayround_i2p.getthesource.uriexplorer
 
     ret = 0
     cfg = load_config(CONFIG_PATH)
@@ -148,7 +148,7 @@ def tarball_list(command_name, opts, args, adds):
     if cfg is None:
         ret = 2
 
-    ret = wayround_org.utils.getopt.check_options(
+    ret = wayround_i2p.utils.getopt.check_options(
         opts,
         [
             '--provider=', '-P=',
@@ -171,7 +171,7 @@ def tarball_list(command_name, opts, args, adds):
 
     if ret == 0:
 
-        controller = wayround_org.getthesource.uriexplorer.URIExplorer(cfg)
+        controller = wayround_i2p.getthesource.uriexplorer.URIExplorer(cfg)
         res = controller.list_tarballs(provider, project)
 
         if res is None:
@@ -202,8 +202,8 @@ def tarball_list(command_name, opts, args, adds):
 
 def basename_list(command_name, opts, args, adds):
 
-    import wayround_org.getthesource.mirrorer
-    import wayround_org.getthesource.uriexplorer
+    import wayround_i2p.getthesource.mirrorer
+    import wayround_i2p.getthesource.uriexplorer
 
     ret = 0
     cfg = load_config(CONFIG_PATH)
@@ -211,7 +211,7 @@ def basename_list(command_name, opts, args, adds):
     if cfg is None:
         ret = 2
 
-    ret = wayround_org.utils.getopt.check_options(
+    ret = wayround_i2p.utils.getopt.check_options(
         opts,
         [
             '--provider=', '-P=',
@@ -234,7 +234,7 @@ def basename_list(command_name, opts, args, adds):
 
     if ret == 0:
 
-        controller = wayround_org.getthesource.uriexplorer.URIExplorer(cfg)
+        controller = wayround_i2p.getthesource.uriexplorer.URIExplorer(cfg)
         res = controller.list_basenames(provider, project)
 
         if res is None:
@@ -248,7 +248,7 @@ def basename_list(command_name, opts, args, adds):
                 for j in sorted(list(res[i].keys())):
                     print("    {}".format(j))
                     print(
-                        wayround_org.utils.text.return_columned_list(
+                        wayround_i2p.utils.text.return_columned_list(
                             sorted(res[i][j]),
                             margin_left='        | ',
                             width=80
@@ -268,8 +268,8 @@ def mirrorer_work_on_dir(command_name, opts, args, adds):
             wrogts_mirrorer.conf.yaml under DIRNAME
     """
 
-    import wayround_org.getthesource.mirrorer
-    import wayround_org.getthesource.uriexplorer
+    import wayround_i2p.getthesource.mirrorer
+    import wayround_i2p.getthesource.uriexplorer
 
     ret = 0
     cfg = load_config(CONFIG_PATH)
@@ -292,12 +292,12 @@ def mirrorer_work_on_dir(command_name, opts, args, adds):
         if 'general' not in cfg:
             cfg['general'] = {}
 
-        cfg['general']['log_dir'] = wayround_org.utils.path.join(
+        cfg['general']['log_dir'] = wayround_i2p.utils.path.join(
             working_directory,
             'wrogts-logs'
             )
 
-        cfg['general']['cache_dir'] = wayround_org.utils.path.join(
+        cfg['general']['cache_dir'] = wayround_i2p.utils.path.join(
             working_directory,
             'wrogts-cache'
             )
@@ -308,8 +308,8 @@ def mirrorer_work_on_dir(command_name, opts, args, adds):
             with open(opts['-mc']) as f:
                 mirrorer_cfg = yaml.load(f.read())
 
-        uriexplorer = wayround_org.getthesource.uriexplorer.URIExplorer(cfg)
-        mirrorer = wayround_org.getthesource.mirrorer.Mirrorer(
+        uriexplorer = wayround_i2p.getthesource.uriexplorer.URIExplorer(cfg)
+        mirrorer = wayround_i2p.getthesource.mirrorer.Mirrorer(
             cfg,
             working_directory,
             uriexplorer
@@ -375,8 +375,8 @@ def simple_mirroring(command_name, opts, args, adds):
 
     """
 
-    import wayround_org.getthesource.mirrorer
-    import wayround_org.getthesource.uriexplorer
+    import wayround_i2p.getthesource.mirrorer
+    import wayround_i2p.getthesource.uriexplorer
 
     # print("args: {}".format(args))
     # print("opts: {}".format(opts))
@@ -403,7 +403,7 @@ def simple_mirroring(command_name, opts, args, adds):
         else:
             working_directory = os.getcwd()
 
-        working_directory = wayround_org.utils.path.abspath(working_directory)
+        working_directory = wayround_i2p.utils.path.abspath(working_directory)
 
     if ret == 0:
         if len(args) > 2:
@@ -427,12 +427,12 @@ def simple_mirroring(command_name, opts, args, adds):
         if 'general' not in cfg:
             cfg['general'] = {}
 
-        cfg['general']['log_dir'] = wayround_org.utils.path.join(
+        cfg['general']['log_dir'] = wayround_i2p.utils.path.join(
             working_directory,
             'wrogts-logs'
             )
 
-        cfg['general']['cache_dir'] = wayround_org.utils.path.join(
+        cfg['general']['cache_dir'] = wayround_i2p.utils.path.join(
             working_directory,
             'wrogts-cache'
             )
@@ -460,12 +460,12 @@ def simple_mirroring(command_name, opts, args, adds):
 
         os.makedirs(working_directory, exist_ok=True)
 
-        uriexplorer = wayround_org.getthesource.uriexplorer.URIExplorer(
+        uriexplorer = wayround_i2p.getthesource.uriexplorer.URIExplorer(
             cfg,
             simple_config=simple_config
             )
 
-        mirrorer = wayround_org.getthesource.mirrorer.Mirrorer(
+        mirrorer = wayround_i2p.getthesource.mirrorer.Mirrorer(
             cfg,
             working_directory,
             uriexplorer,
@@ -512,7 +512,7 @@ def mirror_github(command_name, opts, args, adds):
             }
     """
 
-    import wayround_org.getthesource.git_tool
+    import wayround_i2p.getthesource.git_tool
 
     ret = 0
 
@@ -520,13 +520,13 @@ def mirror_github(command_name, opts, args, adds):
     if len(args) == 1:
         working_dir = args[0]
 
-    working_dir = wayround_org.utils.path.abspath(working_dir)
-    list_file_path = wayround_org.utils.path.join(
+    working_dir = wayround_i2p.utils.path.abspath(working_dir)
+    list_file_path = wayround_i2p.utils.path.join(
         working_dir,
         'download_list.yaml'
         )
 
-    wayround_org.getthesource.git_tool.work_on_github_downloading_list(
+    wayround_i2p.getthesource.git_tool.work_on_github_downloading_list(
         working_dir,
         list_file_path
         )
@@ -541,13 +541,13 @@ def mirror_gitlab(command_name, opts, args, adds):
     if len(args) == 1:
         working_dir = args[0]
 
-    working_dir = wayround_org.utils.path.abspath(working_dir)
-    list_file_path = wayround_org.utils.path.join(
+    working_dir = wayround_i2p.utils.path.abspath(working_dir)
+    list_file_path = wayround_i2p.utils.path.join(
         working_dir,
         'download_list.yaml'
         )
 
-    wayround_org.getthesource.git_tool.work_on_gitlab_downloading_list(
+    wayround_i2p.getthesource.git_tool.work_on_gitlab_downloading_list(
         working_dir,
         list_file_path
         )
@@ -571,7 +571,7 @@ def mirror_git(command_name, opts, args, adds):
       - {make-tarballs: [{basename: go, needed_tag_re_prefix_is: go}]}
     """
 
-    import wayround_org.getthesource.git_tool
+    import wayround_i2p.getthesource.git_tool
 
     ret = 0
 
@@ -579,13 +579,13 @@ def mirror_git(command_name, opts, args, adds):
     if len(args) == 1:
         working_dir = args[0]
 
-    working_dir = wayround_org.utils.path.abspath(working_dir)
-    list_file_path = wayround_org.utils.path.join(
+    working_dir = wayround_i2p.utils.path.abspath(working_dir)
+    list_file_path = wayround_i2p.utils.path.join(
         working_dir,
         'download_list.yaml'
         )
 
-    log_file_path = wayround_org.utils.path.join(
+    log_file_path = wayround_i2p.utils.path.join(
         working_dir,
         'log.txt'
         )
@@ -594,7 +594,7 @@ def mirror_git(command_name, opts, args, adds):
     f.write("start: {}\n".format(datetime.datetime.now()))
     f.flush()
 
-    wayround_org.getthesource.git_tool.work_on_git_downloading_list(
+    wayround_i2p.getthesource.git_tool.work_on_git_downloading_list(
         working_dir,
         list_file_path
         )
@@ -607,17 +607,17 @@ def mirror_git(command_name, opts, args, adds):
 
 def repo_do_work(command_name, opts, args, adds):
 
-    import wayround_org.getthesource.repo_worker
+    import wayround_i2p.getthesource.repo_worker
 
     ret = 0
     path = os.path.abspath(os.getcwd())
-    ret = wayround_org.getthesource.repo_worker.work_on_source_repository(path)
+    ret = wayround_i2p.getthesource.repo_worker.work_on_source_repository(path)
     return ret
 
 
 def download_openjdk(command_name, opts, args, adds):
 
-    import wayround_org.getthesource.openjdk_downloader
+    import wayround_i2p.getthesource.openjdk_downloader
 
     ret = 0
 
@@ -629,7 +629,7 @@ def download_openjdk(command_name, opts, args, adds):
 
         requested_tag = args[0]
 
-        ret = wayround_org.getthesource.openjdk_downloader.jdk_routine(
+        ret = wayround_i2p.getthesource.openjdk_downloader.jdk_routine(
             requested_tag,
             os.getcwd()
             )
@@ -639,7 +639,7 @@ def download_openjdk(command_name, opts, args, adds):
 
 def download_openjfx(command_name, opts, args, adds):
 
-    import wayround_org.getthesource.openjdk_downloader
+    import wayround_i2p.getthesource.openjdk_downloader
 
     ret = 0
 
@@ -651,7 +651,7 @@ def download_openjfx(command_name, opts, args, adds):
 
         requested_tag = args[0]
 
-        ret = wayround_org.getthesource.openjdk_downloader.jfx_routine(
+        ret = wayround_i2p.getthesource.openjdk_downloader.jfx_routine(
             requested_tag,
             os.getcwd()
             )

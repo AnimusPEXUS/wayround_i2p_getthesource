@@ -4,8 +4,8 @@ import importlib
 import logging
 import datetime
 
-import wayround_org.utils.path
-import wayround_org.utils.log
+import wayround_i2p.utils.path
+import wayround_i2p.utils.log
 
 
 class URIExplorer:
@@ -23,7 +23,7 @@ class URIExplorer:
 
         log_dir = os.path.expanduser(log_dir)
 
-        self.logger = wayround_org.utils.log.Log(
+        self.logger = wayround_i2p.utils.log.Log(
             log_dir,
             'uriexplorer {}'.format(datetime.datetime.utcnow())
             )
@@ -50,7 +50,7 @@ class URIExplorer:
         """
         This method should be started only once - on object init
         """
-        providers_dir = wayround_org.utils.path.join(
+        providers_dir = wayround_i2p.utils.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             'modules',
             'providers'
@@ -63,7 +63,7 @@ class URIExplorer:
         else:
             for i in sorted(os.listdir(providers_dir)):
                 if i.endswith('.py'):
-                    j = wayround_org.utils.path.join(
+                    j = wayround_i2p.utils.path.join(
                         providers_dir,
                         i
                         )
@@ -79,7 +79,7 @@ class URIExplorer:
         ret = None
         if name in self.providers:
             mod = importlib.import_module(
-                'wayround_org.getthesource.modules.providers.{}'.format(name)
+                'wayround_i2p.getthesource.modules.providers.{}'.format(name)
                 )
             p = mod.Provider(self)
             if p.get_is_provider_enabled() or name == 'std_simple':

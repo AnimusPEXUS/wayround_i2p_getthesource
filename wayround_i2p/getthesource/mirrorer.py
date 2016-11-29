@@ -4,20 +4,20 @@ import importlib
 
 import yaml
 
-import wayround_org.utils.path
-import wayround_org.utils.tarball
-import wayround_org.utils.version
-import wayround_org.utils.checksum
-import wayround_org.utils.uri
-import wayround_org.utils.list
+import wayround_i2p.utils.path
+import wayround_i2p.utils.tarball
+import wayround_i2p.utils.version
+import wayround_i2p.utils.checksum
+import wayround_i2p.utils.uri
+import wayround_i2p.utils.list
 
-import wayround_org.getthesource.uriexplorer
+import wayround_i2p.getthesource.uriexplorer
 
 
 def get_default_mirroring_cfg():
     ret = {
         'preferred_tarball_compressors': (
-            wayround_org.utils.tarball.
+            wayround_i2p.utils.tarball.
             ACCEPTABLE_SOURCE_NAME_EXTENSIONS
             ),
         'only_latests': 3,
@@ -43,22 +43,22 @@ class Mirrorer:
             simple_config=None
             ):
 
-        working_path = wayround_org.utils.path.abspath(working_path)
+        working_path = wayround_i2p.utils.path.abspath(working_path)
 
         self.working_path = working_path
 
-        self.logger = wayround_org.utils.log.Log(
-            wayround_org.utils.path.join(self.working_path, 'wrogts-logs'),
+        self.logger = wayround_i2p.utils.log.Log(
+            wayround_i2p.utils.path.join(self.working_path, 'wrogts-logs'),
             'mirrorer'
             )
 
         if not isinstance(
                 uriexplorer,
-                wayround_org.getthesource.uriexplorer.URIExplorer
+                wayround_i2p.getthesource.uriexplorer.URIExplorer
                 ):
             raise TypeError(
                 "`uriexplorer' must be inst of "
-                "wayround_org.getthesource.uriexplorer.URIExplorer"
+                "wayround_i2p.getthesource.uriexplorer.URIExplorer"
                 )
 
         self.simple_config = simple_config
@@ -77,7 +77,7 @@ class Mirrorer:
         """
         This method should be started only once - on object init
         """
-        downloader_dir = wayround_org.utils.path.join(
+        downloader_dir = wayround_i2p.utils.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             'modules',
             'downloaders'
@@ -85,7 +85,7 @@ class Mirrorer:
         self.downloaders = []
         for i in sorted(os.listdir(downloader_dir)):
             if i.endswith('.py'):
-                j = wayround_org.utils.path.join(
+                j = wayround_i2p.utils.path.join(
                     downloader_dir,
                     i
                     )
@@ -101,7 +101,7 @@ class Mirrorer:
         ret = None
         if name in self.downloaders:
             mod = importlib.import_module(
-                'wayround_org.getthesource.modules.downloaders.{}'.format(name)
+                'wayround_i2p.getthesource.modules.downloaders.{}'.format(name)
                 )
             p = mod.Downloader(self)
             if p.get_is_downloader_enabled():
@@ -133,7 +133,7 @@ class Mirrorer:
 
             if m_cfg is None:
 
-                m_cfg_path = wayround_org.utils.path.join(
+                m_cfg_path = wayround_i2p.utils.path.join(
                     path,
                     'wrogts_mirrorer.conf.yaml'
                     )
@@ -195,7 +195,7 @@ class Mirrorer:
 
         ret = 0
 
-        path = wayround_org.utils.path.abspath(path)
+        path = wayround_i2p.utils.path.abspath(path)
 
         self.logger.info("loading provider: {}".format(provider_name))
 
@@ -257,7 +257,7 @@ class Mirrorer:
             "task: {}, {}, {}".format(provider, project, basename)
             )
 
-        path = wayround_org.utils.path.abspath(path)
+        path = wayround_i2p.utils.path.abspath(path)
 
         if provider == 'std_simple' and self.pers_prov_obj is not None:
             provider_obj = self.pers_prov_obj
@@ -270,7 +270,7 @@ class Mirrorer:
             project_path_part.append(project)
 
         if provider != 'std_simple':
-            output_path = wayround_org.utils.path.join(
+            output_path = wayround_i2p.utils.path.join(
                 path,
                 'downloads',
                 provider,
@@ -278,7 +278,7 @@ class Mirrorer:
                 basename
                 )
         else:
-            output_path = wayround_org.utils.path.join(
+            output_path = wayround_i2p.utils.path.join(
                 path,
                 'downloads',
                 # provider,
@@ -303,7 +303,7 @@ class Mirrorer:
             )
 
         for i in tarballs:
-            parse_result = wayround_org.utils.tarball.parse_tarball_name(i[0])
+            parse_result = wayround_i2p.utils.tarball.parse_tarball_name(i[0])
             if parse_result is None:
                 continue
             if parse_result['groups']['name'] == basename:
@@ -333,20 +333,20 @@ class Mirrorer:
             for i in needed_tarballs:
                 bases.append(os.path.basename(i[0]))
 
-            bases = wayround_org.utils.tarball.remove_invalid_tarball_names(
+            bases = wayround_i2p.utils.tarball.remove_invalid_tarball_names(
                 bases
                 )
 
-            tree = wayround_org.utils.version.same_base_structurize_by_version(
+            tree = wayround_i2p.utils.version.same_base_structurize_by_version(
                 bases
                 )
 
-            wayround_org.utils.version.truncate_ver_tree(tree, only_latests)
+            wayround_i2p.utils.version.truncate_ver_tree(tree, only_latests)
 
             # self.logger.info(
             #     "    before bases from tree: {}".format(len(bases))
             #     )
-            bases = wayround_org.utils.version.get_bases_from_ver_tree(
+            bases = wayround_i2p.utils.version.get_bases_from_ver_tree(
                 tree,
                 options['preferred_tarball_compressors']
                 )
@@ -368,7 +368,7 @@ class Mirrorer:
             for i in os.listdir(output_path):
                 j_found = False
                 for j in (
-                        wayround_org.utils.tarball.KNOWN_SIGNING_EXTENSIONS
+                        wayround_i2p.utils.tarball.KNOWN_SIGNING_EXTENSIONS
                         + ['.sha1', '.sha512', '.sha224', '.sha256', '.sha384'
                             '.md5'
                            ]
@@ -379,7 +379,7 @@ class Mirrorer:
                 if j_found:
                     continue
 
-                ij = wayround_org.utils.path.join(output_path, i)
+                ij = wayround_i2p.utils.path.join(output_path, i)
 
                 if os.path.isfile(ij):
                     # print("is i in bases?: {}, {}, {}".format(i in bases, i, bases))
@@ -406,7 +406,7 @@ class Mirrorer:
             downloader = self.get_downloader('wget')
             for i in tarballs_to_download:
                 new_basename = os.path.basename(i[0])
-                new_basename_full = wayround_org.utils.path.join(
+                new_basename_full = wayround_i2p.utils.path.join(
                     output_path,
                     new_basename
                     )
@@ -418,7 +418,7 @@ class Mirrorer:
                 saved_cs = None
 
                 if os.path.isfile(new_basename_full):
-                    actual_cs = wayround_org.utils.checksum.make_file_checksum(
+                    actual_cs = wayround_i2p.utils.checksum.make_file_checksum(
                         new_basename_full,
                         options['redownload_prevention_checksum']
                         )
@@ -461,7 +461,7 @@ class Mirrorer:
 
                     if dd_res == 0:
                         actual_cs = (
-                            wayround_org.utils.checksum.make_file_checksum(
+                            wayround_i2p.utils.checksum.make_file_checksum(
                                 new_basename_full,
                                 options['redownload_prevention_checksum']
                                 )
@@ -470,13 +470,13 @@ class Mirrorer:
                         with open(new_basename_full_cs, 'w') as f:
                             f.write(actual_cs)
 
-                for j in wayround_org.utils.tarball.KNOWN_SIGNING_EXTENSIONS:
+                for j in wayround_i2p.utils.tarball.KNOWN_SIGNING_EXTENSIONS:
                     # TODO: this is disabled, as generates too many unneeded
                     #      trafic. need to check in uriexplorer before
                     #      attempting to download
                     continue
                     new_basename_j = new_basename + j
-                    jj = wayround_org.utils.path.join(
+                    jj = wayround_i2p.utils.path.join(
                         output_path,
                         new_basename_j
                         )
@@ -510,7 +510,7 @@ class Mirrorer:
 
             '''
             for i in tarballs_to_delete:
-                ij = wayround_org.utils.path.join(output_path, i)
+                ij = wayround_i2p.utils.path.join(output_path, i)
                 self.logger.info("removing {}".format(i))
                 os.unlink(ij)
             '''
@@ -532,7 +532,7 @@ class Mirrorer:
             filter_text_or_lines = '\n'.join(filter_text_or_lines)
 
         lst = set(
-            wayround_org.utils.list.filter_list(
+            wayround_i2p.utils.list.filter_list(
                 [x[0] for x in needed_tarballs],
                 filter_text_or_lines
                 )

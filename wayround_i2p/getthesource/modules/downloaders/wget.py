@@ -3,7 +3,7 @@ import threading
 import time
 import subprocess
 
-import wayround_org.getthesource.mirrorer
+import wayround_i2p.getthesource.mirrorer
 
 
 class Wget:
@@ -61,7 +61,7 @@ class Wget:
 
         output_filename_options = [
             '-O',
-            wayround_org.utils.path.join(
+            wayround_i2p.utils.path.join(
                 self.outputdir,
                 self.new_basename
                 )
@@ -149,11 +149,11 @@ class Downloader:
     def __init__(self, controller):
         if not isinstance(
                 controller,
-                wayround_org.getthesource.mirrorer.Mirrorer
+                wayround_i2p.getthesource.mirrorer.Mirrorer
                 ):
             raise TypeError(
                 "`controller' must be inst of "
-                "wayround_org.getthesource.mirrorer.Mirrorer"
+                "wayround_i2p.getthesource.mirrorer.Mirrorer"
                 )
         self.controller = controller
         self.logger = self.controller.logger

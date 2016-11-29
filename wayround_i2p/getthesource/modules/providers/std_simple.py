@@ -5,26 +5,26 @@ import hashlib
 import regex
 import ftplib
 
-import wayround_org.utils.path
-import wayround_org.utils.htmlwalk
-import wayround_org.utils.ftpwalk
+import wayround_i2p.utils.path
+import wayround_i2p.utils.htmlwalk
+import wayround_i2p.utils.ftpwalk
 
-import wayround_org.getthesource.modules.providers.templates.std_https
+import wayround_i2p.getthesource.modules.providers.templates.std_https
 
 
 class Provider(
-        wayround_org.getthesource.modules.providers.templates.std_https.
+        wayround_i2p.getthesource.modules.providers.templates.std_https.
         StandardHttps
         ):
 
     def __init__(self, controller):
         if not isinstance(
                 controller,
-                wayround_org.getthesource.uriexplorer.URIExplorer
+                wayround_i2p.getthesource.uriexplorer.URIExplorer
                 ):
             raise TypeError(
                 "`controller' must be inst of "
-                "wayround_org.getthesource.uriexplorer.URIExplorer"
+                "wayround_i2p.getthesource.uriexplorer.URIExplorer"
                 )
 
         self.cache_dir = controller.cache_dir
@@ -91,7 +91,7 @@ class Provider(
 
         target_uri = self.simple_config.get('target_uri', None)
 
-        uri_obj = wayround_org.utils.uri.HttpURI.new_from_string(target_uri)
+        uri_obj = wayround_i2p.utils.uri.HttpURI.new_from_string(target_uri)
         uri_obj_copy = uri_obj.copy()
         uri_obj_copy.path = None
         target_uri_with_root_path = str(uri_obj_copy)
@@ -125,13 +125,13 @@ class Provider(
         if use_cache:
             digest = hashlib.sha1()
             digest.update(
-                wayround_org.utils.path.join(
+                wayround_i2p.utils.path.join(
                     uri_obj.path,
                     path
                     ).encode('utf-8')
                 )
             digest = digest.hexdigest().lower()
-            dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
+            dc = wayround_i2p.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
                 self.cache_dir,
                 '({})-(for {})-(listdir)-({})'.format(
                     self.get_provider_name(),
@@ -155,7 +155,7 @@ class Provider(
 
             if uri_obj.scheme in ['http', 'https']:
 
-                walker_obj = wayround_org.utils.htmlwalk.HTMLWalk(
+                walker_obj = wayround_i2p.utils.htmlwalk.HTMLWalk(
                     uri_obj.authority.host,
                     scheme=uri_obj.scheme,
                     port=uri_obj.authority.port
@@ -171,7 +171,7 @@ class Provider(
                         uri_obj.authority.host,
                         user='anonymous'
                         )
-                    self.ftp_walk = wayround_org.utils.ftpwalk.FTPWalk(
+                    self.ftp_walk = wayround_i2p.utils.ftpwalk.FTPWalk(
                         self.ftp_client
                         )
                 walker_obj = self.ftp_client
@@ -180,7 +180,7 @@ class Provider(
             else:
                 raise Exception("programming error")
 
-            path = wayround_org.utils.path.join('/', uri_obj.path, path)
+            path = wayround_i2p.utils.path.join('/', uri_obj.path, path)
 
             #print("getting list for: {}".format(path))
             folders, files = walker_obj_listdir_method(path)
@@ -192,7 +192,7 @@ class Provider(
                 for i in files:
                     new_uri = '{}{}'.format(
                         target_uri_with_root_path,
-                        wayround_org.utils.path.join(path, i).lstrip('/')
+                        wayround_i2p.utils.path.join(path, i).lstrip('/')
                         )
                     files_d[i] = new_uri
 
@@ -237,7 +237,7 @@ class Provider(
                 if i in ['..', '.', '/']:
                     continue
 
-                ij = wayround_org.utils.path.join(path, i)
+                ij = wayround_i2p.utils.path.join(path, i)
 
                 if not self.ftp_walk.is_dir(ij):
                     files[i] = '{}{}'.format(self.ftp_prefix_uri, ij)

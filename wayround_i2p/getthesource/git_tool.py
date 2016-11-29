@@ -5,10 +5,10 @@ import re
 import yaml
 import random
 
-import wayround_org.utils.path
-import wayround_org.utils.file
-import wayround_org.utils.version
-import wayround_org.utils.checksum
+import wayround_i2p.utils.path
+import wayround_i2p.utils.file
+import wayround_i2p.utils.version
+import wayround_i2p.utils.checksum
 
 
 STD_TAG_RE = (
@@ -29,11 +29,11 @@ def clone_and_update(
 
     ret = 0
 
-    output_dir = wayround_org.utils.path.abspath(output_dir)
+    output_dir = wayround_i2p.utils.path.abspath(output_dir)
 
     os.makedirs(output_dir, exist_ok=True)
 
-    if wayround_org.utils.file.isdirempty(output_dir):
+    if wayround_i2p.utils.file.isdirempty(output_dir):
         p = subprocess.Popen(
             ['git', 'clone', git_uri, output_dir],
             stdout=subprocess.DEVNULL,
@@ -76,7 +76,7 @@ def archive(git_dir, tag, output_filename, prefix):
         with open(sum_file_name) as f:
             summ = f.read().strip()
 
-        if summ.lower() != wayround_org.utils.checksum.make_file_checksum(
+        if summ.lower() != wayround_i2p.utils.checksum.make_file_checksum(
                 output_filename,
                 'sha512'
                 ).lower():
@@ -108,7 +108,7 @@ def archive(git_dir, tag, output_filename, prefix):
         if ret == 0:
             with open(sum_file_name, 'w') as f:
                 f.write(
-                    wayround_org.utils.checksum.make_file_checksum(
+                    wayround_i2p.utils.checksum.make_file_checksum(
                         output_filename,
                         'sha512'
                         ).lower()
@@ -130,7 +130,7 @@ def make_tarballs(
 
     ret = 0
 
-    output_dir = wayround_org.utils.path.abspath(output_dir)
+    output_dir = wayround_i2p.utils.path.abspath(output_dir)
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -203,14 +203,14 @@ def make_tarballs(
             'v{}.tar.xz'.format(acceptable_tags[i]['version_str'])
             )
 
-    tree = wayround_org.utils.version.same_base_structurize_by_version(
+    tree = wayround_i2p.utils.version.same_base_structurize_by_version(
         acceptable_tag_versions2
         )
 
-    wayround_org.utils.version.truncate_ver_tree(tree, truncate_versions)
+    wayround_i2p.utils.version.truncate_ver_tree(tree, truncate_versions)
 
     acceptable_tag_versions2 = (
-        wayround_org.utils.version.get_bases_from_ver_tree(
+        wayround_i2p.utils.version.get_bases_from_ver_tree(
             tree,
             ['.tar.xz']
             )
@@ -240,7 +240,7 @@ def make_tarballs(
             tarball_format
             )
 
-        output_filename = wayround_org.utils.path.join(
+        output_filename = wayround_i2p.utils.path.join(
             output_dir,
             new_file_basename
             )
@@ -261,8 +261,8 @@ def work_on_github_downloading_list(
         no_check_certificate=False,
         verbose=True
         ):
-    list_file_path = wayround_org.utils.path.abspath(list_file_path)
-    work_dir = wayround_org.utils.path.abspath(work_dir)
+    list_file_path = wayround_i2p.utils.path.abspath(list_file_path)
+    work_dir = wayround_i2p.utils.path.abspath(work_dir)
 
     with open(list_file_path) as f:
         targets = yaml.load(f.read())
@@ -274,13 +274,13 @@ def work_on_github_downloading_list(
             if verbose:
                 print("mirroring {}:{}".format(i, j))
 
-            git_dir = wayround_org.utils.path.join(
+            git_dir = wayround_i2p.utils.path.join(
                 work_dir,
                 i,
                 j,
                 'git'
                 )
-            tarballs_dir = wayround_org.utils.path.join(
+            tarballs_dir = wayround_i2p.utils.path.join(
                 work_dir,
                 i,
                 j,
@@ -311,8 +311,8 @@ def work_on_gitlab_downloading_list(
         no_check_certificate=False,
         verbose=True
         ):
-    list_file_path = wayround_org.utils.path.abspath(list_file_path)
-    work_dir = wayround_org.utils.path.abspath(work_dir)
+    list_file_path = wayround_i2p.utils.path.abspath(list_file_path)
+    work_dir = wayround_i2p.utils.path.abspath(work_dir)
 
     with open(list_file_path) as f:
         targets = yaml.load(f.read())
@@ -324,13 +324,13 @@ def work_on_gitlab_downloading_list(
             if verbose:
                 print("mirroring {}:{}".format(i, j))
 
-            git_dir = wayround_org.utils.path.join(
+            git_dir = wayround_i2p.utils.path.join(
                 work_dir,
                 i,
                 j,
                 'git'
                 )
-            tarballs_dir = wayround_org.utils.path.join(
+            tarballs_dir = wayround_i2p.utils.path.join(
                 work_dir,
                 i,
                 j,
@@ -360,21 +360,21 @@ def work_on_git_downloading_list(
         list_file_path,
         no_check_certificate=False
         ):
-    list_file_path = wayround_org.utils.path.abspath(list_file_path)
-    work_dir = wayround_org.utils.path.abspath(work_dir)
+    list_file_path = wayround_i2p.utils.path.abspath(list_file_path)
+    work_dir = wayround_i2p.utils.path.abspath(work_dir)
 
     with open(list_file_path) as f:
         targets = yaml.load(f.read())
 
     for i in targets:
 
-        git_dir = wayround_org.utils.path.join(
+        git_dir = wayround_i2p.utils.path.join(
             work_dir,
             i[1],
             'git'
             )
 
-        tarballs_dir = wayround_org.utils.path.join(
+        tarballs_dir = wayround_i2p.utils.path.join(
             work_dir,
             i[1],
             'tarballs'

@@ -3,8 +3,8 @@ import datetime
 import os.path
 import logging
 
-import wayround_org.utils.data_cache
-import wayround_org.utils.tarball
+import wayround_i2p.utils.data_cache
+import wayround_i2p.utils.tarball
 
 
 class StandardHttps:
@@ -54,7 +54,7 @@ class StandardHttps:
         yield path, folders, files
 
         for i in folders:
-            jo = wayround_org.utils.path.join(path, i)
+            jo = wayround_i2p.utils.path.join(path, i)
             for j in self.walk(project, jo):
                 yield j
 
@@ -71,7 +71,7 @@ class StandardHttps:
         self.check_project_param_value(project)
 
         if use_cache:
-            dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
+            dc = wayround_i2p.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
                 self.cache_dir,
                 '({})-(tree)-({})'.format(
                     self.get_provider_name(),
@@ -90,7 +90,7 @@ class StandardHttps:
 
             for path, dirs, files in self.walk(project):
                 for i in files:
-                    all_files[wayround_org.utils.path.join(path, i)] = files[i]
+                    all_files[wayround_i2p.utils.path.join(path, i)] = files[i]
 
             ret = all_files
 
@@ -101,7 +101,7 @@ class StandardHttps:
         self.check_project_param_value(project)
 
         if use_cache:
-            dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
+            dc = wayround_i2p.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
                 self.get_cache_dir(),
                 '({})-(tarballs)-({})'.format(
                     self.get_provider_name(),
@@ -120,7 +120,7 @@ class StandardHttps:
             lst = []
 
             for i in tree:
-                parse_result = wayround_org.utils.tarball.parse_tarball_name(
+                parse_result = wayround_i2p.utils.tarball.parse_tarball_name(
                     os.path.basename(i),
                     mute=True
                     )
@@ -141,7 +141,7 @@ class StandardHttps:
         self.check_project_param_value(project)
 
         if use_cache:
-            dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
+            dc = wayround_i2p.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
                 self.get_cache_dir(),
                 '({})-(basenames)-({})'.format(
                     self.get_provider_name(),
@@ -161,7 +161,7 @@ class StandardHttps:
             lst = set()
 
             for i in tarballs:
-                parse_result = wayround_org.utils.tarball.parse_tarball_name(
+                parse_result = wayround_i2p.utils.tarball.parse_tarball_name(
                     os.path.basename(i[0]),
                     mute=True
                     )

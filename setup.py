@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(
-    name='wayround_org_getthesource',
+    name='wayround_i2p_getthesource',
     version='0.2.10',
     description=(
         "modular tool for downloading lates N"
@@ -11,9 +11,9 @@ setup(
         ),
     author='Alexey Gorshkov',
     author_email='animus@wayround.org',
-    url='https://github.com/AnimusPEXUS/wayround_org_getthesource',
+    url='https://github.com/AnimusPEXUS/wayround_i2p_getthesource',
     install_requires=[
-        'wayround_org_utils',
+        'wayround_i2p_utils',
         'regex',
         'pyyaml'
         ],
@@ -22,15 +22,15 @@ setup(
         ' :: GNU General Public License v3 or later (GPLv3+)'
         ],
     packages=[
-        'wayround_org.getthesource',
-        'wayround_org.getthesource.modules',
-        'wayround_org.getthesource.modules.downloaders',
-        'wayround_org.getthesource.modules.providers',
-        'wayround_org.getthesource.modules.providers.templates'
+        'wayround_i2p.getthesource',
+        'wayround_i2p.getthesource.modules',
+        'wayround_i2p.getthesource.modules.downloaders',
+        'wayround_i2p.getthesource.modules.providers',
+        'wayround_i2p.getthesource.modules.providers.templates'
         ],
     entry_points={
         'console_scripts': [
-            'wrogts = wayround_org.getthesource.main:main'
+            'wrogts = wayround_i2p.getthesource.main:main'
             ]
         }
     )

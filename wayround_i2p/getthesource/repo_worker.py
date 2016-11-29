@@ -7,15 +7,15 @@ import datetime
 import yaml
 import collections
 
-import wayround_org.utils.path
-import wayround_org.utils.datetime_iso8601
+import wayround_i2p.utils.path
+import wayround_i2p.utils.datetime_iso8601
 
 
 def work_on_source_repository(path):
 
     ret = 0
 
-    path = wayround_org.utils.path.abspath(path)
+    path = wayround_i2p.utils.path.abspath(path)
 
     print("work_on_source_repository at: {}".format(path))
 
@@ -48,7 +48,7 @@ def work_on_source_repository(path):
                             (
                                 datetime.datetime.utcnow()
                                 -
-                                wayround_org.utils.datetime_iso8601.from_str(
+                                wayround_i2p.utils.datetime_iso8601.from_str(
                                     start_stop_file_data[
                                         1]['datetime_UTC0']
                                 )[0]
@@ -79,7 +79,7 @@ def work_on_source_repository(path):
                     {
                         'action': 'begin',
                         'datetime_UTC0':
-                        wayround_org.utils.datetime_iso8601.to_str(
+                        wayround_i2p.utils.datetime_iso8601.to_str(
                             datetime.datetime.utcnow()
                             )
                     }
@@ -97,7 +97,7 @@ def work_on_source_repository(path):
 
         print("unlisting normal files")
         for i in range(len(lst) - 1, -1, -1):
-            j = wayround_org.utils.path.join(path, lst[i])
+            j = wayround_i2p.utils.path.join(path, lst[i])
             if not os.path.isdir(j):
                 lst_files.append(lst[i])
                 del lst[i]
@@ -147,7 +147,7 @@ def work_on_source_repository(path):
                         )
                     )
                 f.flush()
-                j = wayround_org.utils.path.join(path, i)
+                j = wayround_i2p.utils.path.join(path, i)
                 print("   discending into: {}".format(j))
                 work_on_source_repository(j)
                 print("   recursion exited from: {}".format(j))
@@ -155,7 +155,7 @@ def work_on_source_repository(path):
             f.close()
         elif 'upp.py' in lst_files:
             print("   starting upp.py")
-            file_ = wayround_org.utils.path.join(path, 'upp.py')
+            file_ = wayround_i2p.utils.path.join(path, 'upp.py')
             p = subprocess.Popen(
                 ['python3', file_],
                 cwd=path
@@ -165,7 +165,7 @@ def work_on_source_repository(path):
             print("      {} exited with {}".format(file_, p_ret))
         elif 'upp.sh' in lst_files:
             print("   starting upp.sh")
-            file_ = wayround_org.utils.path.join(path, 'upp.sh')
+            file_ = wayround_i2p.utils.path.join(path, 'upp.sh')
             p = subprocess.Popen(
                 ['bash', file_],
                 cwd=path
@@ -183,7 +183,7 @@ def work_on_source_repository(path):
                     {
                         'action': 'end',
                         'datetime_UTC0':
-                        wayround_org.utils.datetime_iso8601.to_str(
+                        wayround_i2p.utils.datetime_iso8601.to_str(
                             datetime.datetime.utcnow()
                             ),
                         'status': ret

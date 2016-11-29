@@ -13,19 +13,19 @@ import fnmatch
 import yaml
 import lxml.html
 
-import wayround_org.utils.path
-import wayround_org.utils.data_cache
-import wayround_org.utils.data_cache_miscs
-import wayround_org.utils.tarball
-import wayround_org.utils.htmlwalk
+import wayround_i2p.utils.path
+import wayround_i2p.utils.data_cache
+import wayround_i2p.utils.data_cache_miscs
+import wayround_i2p.utils.tarball
+import wayround_i2p.utils.htmlwalk
 
 
-import wayround_org.getthesource.uriexplorer
-import wayround_org.getthesource.modules.providers.templates.std_https
+import wayround_i2p.getthesource.uriexplorer
+import wayround_i2p.getthesource.modules.providers.templates.std_https
 
 
 class Provider(
-        wayround_org.getthesource.modules.providers.templates.std_https.
+        wayround_i2p.getthesource.modules.providers.templates.std_https.
         StandardHttps
         ):
 
@@ -33,11 +33,11 @@ class Provider(
 
         if not isinstance(
                 controller,
-                wayround_org.getthesource.uriexplorer.URIExplorer
+                wayround_i2p.getthesource.uriexplorer.URIExplorer
                 ):
             raise TypeError(
                 "`controller' must be inst of "
-                "wayround_org.getthesource.uriexplorer.URIExplorer"
+                "wayround_i2p.getthesource.uriexplorer.URIExplorer"
                 )
 
         self.cache_dir = controller.cache_dir
@@ -101,7 +101,7 @@ class Provider(
             digest = hashlib.sha1()
             digest.update(path.encode('utf-8'))
             digest = digest.hexdigest().lower()
-            dc = wayround_org.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
+            dc = wayround_i2p.utils.data_cache.ShortCSTimeoutYamlCacheHandler(
                 self.cache_dir,
                 '({})-(sf.net)-(listdir)-({})-({})'.format(
                     self.get_provider_name(),
